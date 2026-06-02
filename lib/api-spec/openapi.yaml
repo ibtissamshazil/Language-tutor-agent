@@ -143,6 +143,19 @@ paths:
           description: SSE stream of assistant text chunks
           content:
             text/event-stream: {}
+  /progress/today:
+    get:
+      operationId: getProgressToday
+      tags: [progress]
+      summary: Today's learning progress
+      description: Returns the student's progress toward today's learning goal.
+      responses:
+        "200":
+          description: Today's progress
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DailyProgress"
   /lessons:
     get:
       operationId: listLessons
@@ -269,6 +282,30 @@ components:
           type: string
       required:
         - error
+    DailyProgress:
+      type: object
+      properties:
+        points:
+          type: integer
+          description: Weighted learning points accumulated today
+        target:
+          type: integer
+          description: Points needed to reach today's goal
+        percent:
+          type: integer
+          description: Progress toward the goal as a percentage (0-100)
+        achieved:
+          type: boolean
+          description: Whether today's goal has been reached
+        phrasesLearned:
+          type: integer
+          description: Number of Urdu words/phrases taught today
+      required:
+        - points
+        - target
+        - percent
+        - achieved
+        - phrasesLearned
     LessonPhrase:
       type: object
       properties:

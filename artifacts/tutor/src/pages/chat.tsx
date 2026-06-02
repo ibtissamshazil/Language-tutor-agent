@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useRoute, useLocation } from "wouter";
 import { useChat } from "@/hooks/use-chat";
 import { ChatMessage } from "@/components/chat-message";
+import { DailyProgressBar } from "@/components/daily-progress-bar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { SendHorizontal, Sparkles } from "lucide-react";
@@ -43,6 +44,7 @@ export default function ChatPage() {
 
   return (
     <div className="flex flex-col h-full max-w-4xl mx-auto w-full">
+      <DailyProgressBar />
       <div 
         ref={scrollRef}
         className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 scroll-smooth"

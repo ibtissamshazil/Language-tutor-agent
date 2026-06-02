@@ -1,1 +1,2 @@
 - [tw-animate-css enter animations](tw-animate-css-opacity.md) — never pair `animate-in fade-in` with a static `opacity-0` class; element stays invisible.
+- [Daily progress system](daily-progress-system.md) — progress is derived from Urdu in today's assistant messages (not stored); same regex as renderer; tune DAILY_TARGET only.

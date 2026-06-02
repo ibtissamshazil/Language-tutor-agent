@@ -44,8 +44,13 @@ An AI-powered language tutor web app: a chat interface where an LLM teaches Urdu
 
 ## Product
 
-- Chat tutor at `/` (and `/chat/:id`): start/continue/delete conversations, streaming bilingual replies.
+- Chat tutor at `/` (and `/chat/:id`): start/continue/delete conversations, streaming bilingual replies. A top progress bar shows progress toward today's learning goal; the tutor proactively tells the student what to learn next and, once the daily goal is reached, congratulates them and offers to continue or rest till tomorrow.
 - Lessons browser at `/lessons` and `/lessons/:slug`: beginner topics with phrases, plus a "Practice in Chat" jump-off.
+
+## Daily progress
+
+- Progress is derived (not stored) from Urdu taught in today's `assistant` messages. Scoring lives in `artifacts/api-server/src/lib/progress.ts` (points = Urdu word count per phrase; tune `DAILY_TARGET` there). `GET /api/progress/today` returns the daily summary; the chat handler injects a per-turn progress directive into the LLM so it reacts to how close the student is to the goal.
+- The progress scorer uses the SAME Urdu unicode regex as the frontend renderer (`chat-message.tsx`) — keep them in sync.
 
 ## User preferences
 

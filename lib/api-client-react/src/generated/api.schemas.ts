@@ -50,6 +50,19 @@ export interface OpenaiError {
   error: string;
 }
 
+export interface DailyProgress {
+  /** Weighted learning points accumulated today */
+  points: number;
+  /** Points needed to reach today's goal */
+  target: number;
+  /** Progress toward the goal as a percentage (0-100) */
+  percent: number;
+  /** Whether today's goal has been reached */
+  achieved: boolean;
+  /** Number of Urdu words/phrases taught today */
+  phrasesLearned: number;
+}
+
 export interface LessonPhrase {
   /** The phrase written in Urdu script */
   urdu: string;
