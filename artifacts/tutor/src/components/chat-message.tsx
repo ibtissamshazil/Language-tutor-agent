@@ -8,8 +8,11 @@ export function ChatMessage({ message }: { message: OpenaiMessage }) {
   
   // Basic heuristic to detect Urdu characters and wrap them
   const renderContent = (text: string) => {
-    // Regex for Arabic/Urdu unicode blocks
-    const urduRegex = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]+/g;
+    // Regex for Arabic/Urdu unicode blocks. Consecutive Urdu words separated by
+    // spaces are grouped into a single run so they render as one continuous
+    // sentence (e.g. "میں انگلش بولتا ہوں") instead of one word per line.
+    const urduRegex =
+      /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF](?:[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF \t]*[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF])?/g;
     
     const parts = [];
     let lastIndex = 0;
