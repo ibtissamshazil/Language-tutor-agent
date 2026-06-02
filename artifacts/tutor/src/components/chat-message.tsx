@@ -22,16 +22,34 @@ export function ChatMessage({ message }: { message: OpenaiMessage }) {
       if (match.index > lastIndex) {
         parts.push(<span key={`text-${lastIndex}`}>{text.slice(lastIndex, match.index)}</span>);
       }
-      parts.push(
-        <span 
-          key={`urdu-${match.index}`} 
-          className="font-urdu text-xl leading-loose inline-block my-1 text-primary mr-1"
-          dir="rtl"
-        >
-          {match[0]}
-        </span>
-      );
-      lastIndex = match.index + match[0].length;
+
+      const run = match[0];
+      const words = run.split(/\s+/).filter(Boolean);
+      const urduClass = "font-urdu text-xl leading-loose inline-block my-1 text-primary mr-1";
+
+      if (words.length > 1) {
+        // Show each word stacked on its own line, then the full sentence on one line.
+        words.forEach((word, w) => {
+          parts.push(
+            <span key={`urdu-${match!.index}-w${w}`} className={urduClass} dir="rtl">
+              {word}
+            </span>
+          );
+        });
+        parts.push(
+          <span key={`urdu-${match.index}-full`} className={urduClass} dir="rtl">
+            {words.join(" ")}
+          </span>
+        );
+      } else {
+        parts.push(
+          <span key={`urdu-${match.index}`} className={urduClass} dir="rtl">
+            {run}
+          </span>
+        );
+      }
+
+      lastIndex = match.index + run.length;
     }
     
     if (lastIndex < text.length) {
