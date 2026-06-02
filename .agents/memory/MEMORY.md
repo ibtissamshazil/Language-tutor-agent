@@ -1,0 +1,1 @@
+- [tw-animate-css enter animations](tw-animate-css-opacity.md) — never pair `animate-in fade-in` with a static `opacity-0` class; element stays invisible.
