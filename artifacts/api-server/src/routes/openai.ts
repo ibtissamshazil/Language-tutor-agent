@@ -1,11 +1,12 @@
 import { Router, type IRouter } from "express";
-import { eq, asc, desc } from "drizzle-orm";
+import { eq, asc, desc, and, gte } from "drizzle-orm";
 import { db, conversations, messages } from "@workspace/db";
 import {
   CreateOpenaiConversationBody,
   SendOpenaiMessageBody,
 } from "@workspace/api-zod";
 import { openai } from "@workspace/integrations-openai-ai-server";
+import { startOfToday, summarizeProgress } from "../lib/progress";
 
 const router: IRouter = Router();
 
@@ -25,7 +26,21 @@ Teaching rules:
 - Gently correct mistakes and praise progress. Be encouraging.
 - When relevant, give a tiny practice prompt or example sentence the student can try.
 - Stay focused on teaching Urdu. If the student goes off-topic, gently steer back.
-- Do not use emojis.`;
+- Do not use emojis.
+
+Engagement and momentum:
+- ALWAYS end every reply by TELLING the student what to learn or practice next based on what they have studied so far in this conversation. Do NOT ask "what would you like to learn next?" — decide for them and lead the way (e.g. "Next, let's build on this and learn how to say...", "Now keep practicing by trying...").
+- Keep the student in flow toward today's learning goal. Make the next step feel small, concrete and worth doing right now so they want to keep going.
+- Build progressively on their history: reinforce earlier words while introducing slightly more each turn.`;
+
+// A dynamic system message describing the student's progress toward today's goal,
+// injected fresh on every turn so the tutor can react to where they are.
+function progressDirective(points: number, target: number, achieved: boolean): string {
+  if (achieved) {
+    return `STUDENT PROGRESS: The student has REACHED today's learning goal (${points}/${target} points). In this reply, warmly congratulate them on hitting today's target, briefly recap what they learned today, and then ASK whether they would like to keep going for more practice now, or rest for the day and come back stronger tomorrow. Make them feel proud of the progress they made today.`;
+  }
+  return `STUDENT PROGRESS: Today's goal is ${target} points; the student is at ${points}/${target}. Keep teaching to move them toward the goal, and end your reply by telling them the next concrete thing to learn or practice. Do not mention raw point numbers to the student.`;
+}
 
 // List all conversations
 router.get("/conversations", async (_req, res) => {
@@ -143,8 +158,22 @@ router.post("/conversations/:id/messages", async (req, res) => {
     .where(eq(messages.conversationId, id))
     .orderBy(asc(messages.createdAt));
 
+  // Compute today's learning progress so the tutor can react to how close the
+  // student is to today's goal.
+  const todaysAssistantMessages = await db
+    .select({ content: messages.content })
+    .from(messages)
+    .where(
+      and(eq(messages.role, "assistant"), gte(messages.createdAt, startOfToday())),
+    );
+  const progress = summarizeProgress(todaysAssistantMessages.map((m) => m.content));
+
   const chatMessages = [
     { role: "system" as const, content: SYSTEM_PROMPT },
+    {
+      role: "system" as const,
+      content: progressDirective(progress.points, progress.target, progress.achieved),
+    },
     ...history.map((m) => ({
       role: m.role === "assistant" ? ("assistant" as const) : ("user" as const),
       content: m.content,

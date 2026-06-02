@@ -20,6 +20,7 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  DailyProgress,
   HealthStatus,
   Lesson,
   OpenaiConversation,
@@ -563,6 +564,84 @@ export const useSendOpenaiMessage = <TError = ErrorType<unknown>,
       > => {
       return useMutation(getSendOpenaiMessageMutationOptions(options));
     }
+
+export const getGetProgressTodayUrl = () => {
+
+
+
+
+  return `/api/progress/today`
+}
+
+/**
+ * Returns the student's progress toward today's learning goal.
+ * @summary Today's learning progress
+ */
+export const getProgressToday = async ( options?: RequestInit): Promise<DailyProgress> => {
+
+  return customFetch<DailyProgress>(getGetProgressTodayUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetProgressTodayQueryKey = () => {
+    return [
+    `/api/progress/today`
+    ] as const;
+    }
+
+
+export const getGetProgressTodayQueryOptions = <TData = Awaited<ReturnType<typeof getProgressToday>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getProgressToday>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetProgressTodayQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getProgressToday>>> = ({ signal }) => getProgressToday({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getProgressToday>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetProgressTodayQueryResult = NonNullable<Awaited<ReturnType<typeof getProgressToday>>>
+export type GetProgressTodayQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Today's learning progress
+ */
+
+export function useGetProgressToday<TData = Awaited<ReturnType<typeof getProgressToday>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getProgressToday>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetProgressTodayQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
 
 export const getListLessonsUrl = () => {
 

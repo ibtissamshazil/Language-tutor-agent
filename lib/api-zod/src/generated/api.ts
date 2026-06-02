@@ -103,6 +103,19 @@ export const SendOpenaiMessageBody = zod.object({
 
 
 /**
+ * Returns the student's progress toward today's learning goal.
+ * @summary Today's learning progress
+ */
+export const GetProgressTodayResponse = zod.object({
+  "points": zod.number().describe('Weighted learning points accumulated today'),
+  "target": zod.number().describe('Points needed to reach today\'s goal'),
+  "percent": zod.number().describe('Progress toward the goal as a percentage (0-100)'),
+  "achieved": zod.boolean().describe('Whether today\'s goal has been reached'),
+  "phrasesLearned": zod.number().describe('Number of Urdu words\/phrases taught today')
+})
+
+
+/**
  * Returns structured beginner Urdu lessons with vocabulary and phrases.
  * @summary List beginner Urdu lessons
  */

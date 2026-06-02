@@ -5,6 +5,7 @@ import {
   useCreateOpenaiConversation, 
   getGetOpenaiConversationQueryKey,
   getListOpenaiConversationsQueryKey,
+  getGetProgressTodayQueryKey,
   useGetOpenaiConversation,
   OpenaiMessage
 } from "@workspace/api-client-react";
@@ -117,6 +118,7 @@ export function useChat(conversationId?: number) {
 
       queryClient.invalidateQueries({ queryKey: getGetOpenaiConversationQueryKey(targetConversationId) });
       queryClient.invalidateQueries({ queryKey: getListOpenaiConversationsQueryKey() });
+      queryClient.invalidateQueries({ queryKey: getGetProgressTodayQueryKey() });
 
     } catch (e) {
       rollback();
