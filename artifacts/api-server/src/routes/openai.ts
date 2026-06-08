@@ -242,9 +242,12 @@ router.post("/conversations/:id/messages", async (req, res) => {
     }
     req.log.error({ err }, "Failed to stream chat completion");
     if (!res.writableEnded) {
-      res.write(
-        `data: ${JSON.stringify({ error: "Failed to generate a reply" })}\n\n`,
-      );
+      const status = (err as { status?: number })?.status;
+      const errorMessage =
+        status === 429
+          ? "The free model is busy right now (rate limited). Please wait a few seconds and try again."
+          : "Failed to generate a reply";
+      res.write(`data: ${JSON.stringify({ error: errorMessage })}\n\n`);
       res.end();
     }
   }

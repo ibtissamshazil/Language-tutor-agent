@@ -11,7 +11,8 @@ An AI-powered language tutor web app: a chat interface where an LLM teaches Urdu
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
 - Required env: `DATABASE_URL` — Postgres connection string
-- Required env (auto-provisioned via AI Integrations): `AI_INTEGRATIONS_OPENAI_BASE_URL`, `AI_INTEGRATIONS_OPENAI_API_KEY`
+- LLM (free, preferred): `OPENROUTER_API_KEY` — your own free key from https://openrouter.ai/keys. Optional `OPENROUTER_MODEL` to override the default free model.
+- LLM (fallback, paid): `AI_INTEGRATIONS_OPENAI_BASE_URL`, `AI_INTEGRATIONS_OPENAI_API_KEY` — used only when `OPENROUTER_API_KEY` is not set (requires a paid Replit plan).
 
 ## Stack
 
@@ -19,7 +20,7 @@ An AI-powered language tutor web app: a chat interface where an LLM teaches Urdu
 - API: Express 5
 - Frontend: React + Vite, wouter (routing), TanStack Query, Tailtwind + tw-animate-css
 - DB: PostgreSQL + Drizzle ORM
-- LLM: OpenAI via Replit AI Integrations proxy (no user API key needed)
+- LLM: OpenRouter (free models) called directly with the user's own `OPENROUTER_API_KEY`; falls back to OpenAI via Replit AI Integrations proxy if no OpenRouter key is set
 - Validation: Zod (`zod/v4`), `drizzle-zod`
 - API codegen: Orval (from OpenAPI spec)
 
@@ -60,7 +61,8 @@ An AI-powered language tutor web app: a chat interface where an LLM teaches Urdu
 
 - `tw-animate-css` `animate-in` does NOT apply `fill-mode: forwards` by default. Do NOT pair `animate-in fade-in` with a static `opacity-0` class — the element reverts to (or starts) invisible. Use `animate-in fade-in` alone, or set `animationFillMode: "both"` inline.
 - Restart the `artifacts/api-server` workflow after adding/mounting new routes — the dev workflow builds once on start.
-- LLM model is `gpt-5.4` with `max_completion_tokens` (not `max_tokens`).
+- LLM provider/model is resolved in `artifacts/api-server/src/lib/llm.ts`. OpenRouter free models use `max_tokens`; the Replit `gpt-5.4` fallback needs `max_completion_tokens` — the chat route branches on `usingOpenRouter`.
+- OpenRouter free model slugs (the `:free` ones) come and go and get rate-limited (HTTP 429) per upstream provider. If chat returns "Failed to generate a reply", check the api-server log for the OpenRouter error, then probe `GET https://openrouter.ai/api/v1/models` (filter pricing prompt+completion == 0) and set `OPENROUTER_MODEL` to a working one. Default is `openai/gpt-oss-120b:free`.
 - Do not change the OpenAPI `info.title` — it controls generated filenames.
 - Never use `console.log` in server code — use `req.log` in handlers, `logger` elsewhere.
 
