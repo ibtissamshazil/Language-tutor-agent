@@ -5,7 +5,7 @@ import {
   CreateOpenaiConversationBody,
   SendOpenaiMessageBody,
 } from "@workspace/api-zod";
-import { openai } from "@workspace/integrations-openai-ai-server";
+import { llm, LLM_MODEL, usingOpenRouter } from "../lib/llm";
 import { startOfToday, summarizeProgress } from "../lib/progress";
 
 const router: IRouter = Router();
@@ -197,10 +197,14 @@ router.post("/conversations/:id/messages", async (req, res) => {
 
   let fullResponse = "";
   try {
-    const stream = await openai.chat.completions.create(
+    const stream = await llm.chat.completions.create(
       {
-        model: "gpt-5.4",
-        max_completion_tokens: 8192,
+        model: LLM_MODEL,
+        // gpt-5.4 (Replit proxy) needs max_completion_tokens; OpenRouter free
+        // models use the standard max_tokens.
+        ...(usingOpenRouter
+          ? { max_tokens: 8192 }
+          : { max_completion_tokens: 8192 }),
         messages: chatMessages,
         stream: true,
       },
