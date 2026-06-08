@@ -1,2 +1,3 @@
 - [tw-animate-css enter animations](tw-animate-css-opacity.md) — never pair `animate-in fade-in` with a static `opacity-0` class; element stays invisible.
 - [Daily progress system](daily-progress-system.md) — progress is derived from Urdu in today's assistant messages (not stored); same regex as renderer; tune DAILY_TARGET only.
+- [OpenRouter free LLM](openrouter-free-llm.md) — tutor runs free via OpenRouter + own key; `:free` slugs flip to paid / 429, verify against live /models before hardcoding.
