@@ -1,9 +1,16 @@
-// Static beginner lesson content, keyed by language code.
+// Static lesson content, keyed by language code, organised by expertise level.
 //
-// Each language has the same six beginner topics so the lessons browser feels
-// consistent across languages. `transliteration` is left empty for Latin-script
-// languages (Spanish, French, German, Italian, Portuguese) where it adds
-// nothing, and filled in for languages that use a non-Latin script.
+// Lessons are grouped into per-level maps (BEGINNER / INTERMEDIATE / ADVANCED).
+// Each language shares the same topic set within a level so the lessons browser
+// feels consistent across languages. `transliteration` is left empty for
+// Latin-script languages (Spanish, French, German, Italian, Portuguese) where it
+// adds nothing, and filled in for languages that use a non-Latin script.
+//
+// The exported LESSONS_BY_LANGUAGE flattens all levels into a single per-language
+// list with each lesson tagged by its `level`, so the API can serve every level
+// and the frontend can filter/sort by the learner's chosen expertise.
+
+import type { LevelCode } from "@workspace/languages";
 
 export type Phrase = {
   native: string;
@@ -11,7 +18,9 @@ export type Phrase = {
   english: string;
 };
 
-export type Lesson = {
+// A lesson as authored in the per-level maps below (no `level` field — that is
+// applied automatically from which map it lives in).
+export type LessonContent = {
   slug: string;
   title: string;
   description: string;
@@ -19,13 +28,16 @@ export type Lesson = {
   phrases: Phrase[];
 };
 
+// A lesson as served to clients: content plus the expertise level it belongs to.
+export type Lesson = LessonContent & { level: LevelCode };
+
 const p = (native: string, transliteration: string, english: string): Phrase => ({
   native,
   transliteration,
   english,
 });
 
-export const LESSONS_BY_LANGUAGE: Record<string, Lesson[]> = {
+const BEGINNER: Record<string, LessonContent[]> = {
   es: [
     {
       slug: "greetings",
@@ -927,3 +939,854 @@ export const LESSONS_BY_LANGUAGE: Record<string, Lesson[]> = {
     },
   ],
 };
+
+const INTERMEDIATE: Record<string, LessonContent[]> = {
+  es: [
+    {
+      slug: "directions",
+      title: "Getting Around",
+      description: "Ask for directions and find your way around town.",
+      emoji: "map",
+      phrases: [
+        p("¿Dónde está la estación?", "", "Where is the station?"),
+        p("Gire a la derecha", "", "Turn right"),
+        p("Siga recto", "", "Go straight"),
+        p("¿Está lejos?", "", "Is it far?"),
+        p("Estoy perdido", "", "I am lost"),
+      ],
+    },
+    {
+      slug: "shopping",
+      title: "Shopping & Money",
+      description: "Buy things, ask prices, and pay at the shop.",
+      emoji: "cart",
+      phrases: [
+        p("¿Cuánto cuesta?", "", "How much is it?"),
+        p("Es demasiado caro", "", "It's too expensive"),
+        p("¿Puedo pagar con tarjeta?", "", "Can I pay by card?"),
+        p("Quiero comprar esto", "", "I want to buy this"),
+        p("¿Tiene cambio?", "", "Do you have change?"),
+      ],
+    },
+    {
+      slug: "dining",
+      title: "Eating Out",
+      description: "Order food and handle a meal at a restaurant.",
+      emoji: "food",
+      phrases: [
+        p("Una mesa para dos", "", "A table for two"),
+        p("La carta, por favor", "", "The menu, please"),
+        p("Quisiera pedir", "", "I would like to order"),
+        p("La cuenta, por favor", "", "The bill, please"),
+        p("Estaba delicioso", "", "It was delicious"),
+      ],
+    },
+  ],
+  fr: [
+    {
+      slug: "directions",
+      title: "Getting Around",
+      description: "Ask for directions and find your way around town.",
+      emoji: "map",
+      phrases: [
+        p("Où est la gare ?", "", "Where is the station?"),
+        p("Tournez à droite", "", "Turn right"),
+        p("Continuez tout droit", "", "Go straight"),
+        p("C'est loin ?", "", "Is it far?"),
+        p("Je suis perdu", "", "I am lost"),
+      ],
+    },
+    {
+      slug: "shopping",
+      title: "Shopping & Money",
+      description: "Buy things, ask prices, and pay at the shop.",
+      emoji: "cart",
+      phrases: [
+        p("Combien ça coûte ?", "", "How much is it?"),
+        p("C'est trop cher", "", "It's too expensive"),
+        p("Je peux payer par carte ?", "", "Can I pay by card?"),
+        p("Je voudrais acheter ceci", "", "I would like to buy this"),
+        p("Avez-vous de la monnaie ?", "", "Do you have change?"),
+      ],
+    },
+    {
+      slug: "dining",
+      title: "Eating Out",
+      description: "Order food and handle a meal at a restaurant.",
+      emoji: "food",
+      phrases: [
+        p("Une table pour deux", "", "A table for two"),
+        p("Le menu, s'il vous plaît", "", "The menu, please"),
+        p("Je voudrais commander", "", "I would like to order"),
+        p("L'addition, s'il vous plaît", "", "The bill, please"),
+        p("C'était délicieux", "", "It was delicious"),
+      ],
+    },
+  ],
+  de: [
+    {
+      slug: "directions",
+      title: "Getting Around",
+      description: "Ask for directions and find your way around town.",
+      emoji: "map",
+      phrases: [
+        p("Wo ist der Bahnhof?", "", "Where is the station?"),
+        p("Biegen Sie rechts ab", "", "Turn right"),
+        p("Gehen Sie geradeaus", "", "Go straight"),
+        p("Ist es weit?", "", "Is it far?"),
+        p("Ich habe mich verlaufen", "", "I am lost"),
+      ],
+    },
+    {
+      slug: "shopping",
+      title: "Shopping & Money",
+      description: "Buy things, ask prices, and pay at the shop.",
+      emoji: "cart",
+      phrases: [
+        p("Wie viel kostet das?", "", "How much is it?"),
+        p("Das ist zu teuer", "", "It's too expensive"),
+        p("Kann ich mit Karte zahlen?", "", "Can I pay by card?"),
+        p("Ich möchte das kaufen", "", "I would like to buy this"),
+        p("Haben Sie Wechselgeld?", "", "Do you have change?"),
+      ],
+    },
+    {
+      slug: "dining",
+      title: "Eating Out",
+      description: "Order food and handle a meal at a restaurant.",
+      emoji: "food",
+      phrases: [
+        p("Ein Tisch für zwei", "", "A table for two"),
+        p("Die Speisekarte, bitte", "", "The menu, please"),
+        p("Ich möchte bestellen", "", "I would like to order"),
+        p("Die Rechnung, bitte", "", "The bill, please"),
+        p("Es war köstlich", "", "It was delicious"),
+      ],
+    },
+  ],
+  it: [
+    {
+      slug: "directions",
+      title: "Getting Around",
+      description: "Ask for directions and find your way around town.",
+      emoji: "map",
+      phrases: [
+        p("Dov'è la stazione?", "", "Where is the station?"),
+        p("Giri a destra", "", "Turn right"),
+        p("Vada dritto", "", "Go straight"),
+        p("È lontano?", "", "Is it far?"),
+        p("Mi sono perso", "", "I am lost"),
+      ],
+    },
+    {
+      slug: "shopping",
+      title: "Shopping & Money",
+      description: "Buy things, ask prices, and pay at the shop.",
+      emoji: "cart",
+      phrases: [
+        p("Quanto costa?", "", "How much is it?"),
+        p("È troppo caro", "", "It's too expensive"),
+        p("Posso pagare con la carta?", "", "Can I pay by card?"),
+        p("Vorrei comprare questo", "", "I would like to buy this"),
+        p("Avete il resto?", "", "Do you have change?"),
+      ],
+    },
+    {
+      slug: "dining",
+      title: "Eating Out",
+      description: "Order food and handle a meal at a restaurant.",
+      emoji: "food",
+      phrases: [
+        p("Un tavolo per due", "", "A table for two"),
+        p("Il menù, per favore", "", "The menu, please"),
+        p("Vorrei ordinare", "", "I would like to order"),
+        p("Il conto, per favore", "", "The bill, please"),
+        p("Era delizioso", "", "It was delicious"),
+      ],
+    },
+  ],
+  pt: [
+    {
+      slug: "directions",
+      title: "Getting Around",
+      description: "Ask for directions and find your way around town.",
+      emoji: "map",
+      phrases: [
+        p("Onde fica a estação?", "", "Where is the station?"),
+        p("Vire à direita", "", "Turn right"),
+        p("Siga em frente", "", "Go straight"),
+        p("É longe?", "", "Is it far?"),
+        p("Estou perdido", "", "I am lost"),
+      ],
+    },
+    {
+      slug: "shopping",
+      title: "Shopping & Money",
+      description: "Buy things, ask prices, and pay at the shop.",
+      emoji: "cart",
+      phrases: [
+        p("Quanto custa?", "", "How much is it?"),
+        p("É muito caro", "", "It's too expensive"),
+        p("Posso pagar com cartão?", "", "Can I pay by card?"),
+        p("Quero comprar isto", "", "I want to buy this"),
+        p("Tem troco?", "", "Do you have change?"),
+      ],
+    },
+    {
+      slug: "dining",
+      title: "Eating Out",
+      description: "Order food and handle a meal at a restaurant.",
+      emoji: "food",
+      phrases: [
+        p("Uma mesa para dois", "", "A table for two"),
+        p("O cardápio, por favor", "", "The menu, please"),
+        p("Gostaria de pedir", "", "I would like to order"),
+        p("A conta, por favor", "", "The bill, please"),
+        p("Estava delicioso", "", "It was delicious"),
+      ],
+    },
+  ],
+  zh: [
+    {
+      slug: "directions",
+      title: "Getting Around",
+      description: "Ask for directions and find your way around town.",
+      emoji: "map",
+      phrases: [
+        p("车站在哪里?", "chēzhàn zài nǎlǐ?", "Where is the station?"),
+        p("向右转", "xiàng yòu zhuǎn", "Turn right"),
+        p("一直走", "yìzhí zǒu", "Go straight"),
+        p("远吗?", "yuǎn ma?", "Is it far?"),
+        p("我迷路了", "wǒ mílù le", "I am lost"),
+      ],
+    },
+    {
+      slug: "shopping",
+      title: "Shopping & Money",
+      description: "Buy things, ask prices, and pay at the shop.",
+      emoji: "cart",
+      phrases: [
+        p("多少钱?", "duōshǎo qián?", "How much is it?"),
+        p("太贵了", "tài guì le", "It's too expensive"),
+        p("可以刷卡吗?", "kěyǐ shuākǎ ma?", "Can I pay by card?"),
+        p("我想买这个", "wǒ xiǎng mǎi zhège", "I want to buy this"),
+        p("有零钱吗?", "yǒu língqián ma?", "Do you have change?"),
+      ],
+    },
+    {
+      slug: "dining",
+      title: "Eating Out",
+      description: "Order food and handle a meal at a restaurant.",
+      emoji: "food",
+      phrases: [
+        p("两个人的桌子", "liǎng gè rén de zhuōzi", "A table for two"),
+        p("请给我菜单", "qǐng gěi wǒ càidān", "The menu, please"),
+        p("我想点菜", "wǒ xiǎng diǎncài", "I would like to order"),
+        p("买单", "mǎidān", "The bill, please"),
+        p("很好吃", "hěn hǎochī", "It was delicious"),
+      ],
+    },
+  ],
+  ja: [
+    {
+      slug: "directions",
+      title: "Getting Around",
+      description: "Ask for directions and find your way around town.",
+      emoji: "map",
+      phrases: [
+        p("駅はどこですか?", "eki wa doko desu ka?", "Where is the station?"),
+        p("右に曲がってください", "migi ni magatte kudasai", "Turn right"),
+        p("まっすぐ行ってください", "massugu itte kudasai", "Go straight"),
+        p("遠いですか?", "tōi desu ka?", "Is it far?"),
+        p("道に迷いました", "michi ni mayoimashita", "I am lost"),
+      ],
+    },
+    {
+      slug: "shopping",
+      title: "Shopping & Money",
+      description: "Buy things, ask prices, and pay at the shop.",
+      emoji: "cart",
+      phrases: [
+        p("いくらですか?", "ikura desu ka?", "How much is it?"),
+        p("高すぎます", "takasugimasu", "It's too expensive"),
+        p("カードで払えますか?", "kādo de haraemasu ka?", "Can I pay by card?"),
+        p("これを買いたいです", "kore o kaitai desu", "I want to buy this"),
+        p("おつりはありますか?", "otsuri wa arimasu ka?", "Do you have change?"),
+      ],
+    },
+    {
+      slug: "dining",
+      title: "Eating Out",
+      description: "Order food and handle a meal at a restaurant.",
+      emoji: "food",
+      phrases: [
+        p("二人用のテーブル", "futari-yō no tēburu", "A table for two"),
+        p("メニューをください", "menyū o kudasai", "The menu, please"),
+        p("注文したいです", "chūmon shitai desu", "I would like to order"),
+        p("お会計お願いします", "okaikei onegaishimasu", "The bill, please"),
+        p("美味しかったです", "oishikatta desu", "It was delicious"),
+      ],
+    },
+  ],
+  hi: [
+    {
+      slug: "directions",
+      title: "Getting Around",
+      description: "Ask for directions and find your way around town.",
+      emoji: "map",
+      phrases: [
+        p("स्टेशन कहाँ है?", "station kahaan hai?", "Where is the station?"),
+        p("दाएँ मुड़िए", "daaen muriye", "Turn right"),
+        p("सीधे जाइए", "seedhe jaaiye", "Go straight"),
+        p("क्या यह दूर है?", "kya yeh door hai?", "Is it far?"),
+        p("मैं खो गया हूँ", "main kho gaya hoon", "I am lost"),
+      ],
+    },
+    {
+      slug: "shopping",
+      title: "Shopping & Money",
+      description: "Buy things, ask prices, and pay at the shop.",
+      emoji: "cart",
+      phrases: [
+        p("यह कितने का है?", "yeh kitne ka hai?", "How much is it?"),
+        p("यह बहुत महँगा है", "yeh bahut mehnga hai", "It's too expensive"),
+        p("क्या मैं कार्ड से दे सकता हूँ?", "kya main card se de sakta hoon?", "Can I pay by card?"),
+        p("मैं यह खरीदना चाहता हूँ", "main yeh khareedna chahta hoon", "I want to buy this"),
+        p("क्या छुट्टे हैं?", "kya chhutte hain?", "Do you have change?"),
+      ],
+    },
+    {
+      slug: "dining",
+      title: "Eating Out",
+      description: "Order food and handle a meal at a restaurant.",
+      emoji: "food",
+      phrases: [
+        p("दो लोगों के लिए मेज़", "do logon ke liye mez", "A table for two"),
+        p("मेन्यू दीजिए", "menu deejiye", "The menu, please"),
+        p("मैं ऑर्डर करना चाहता हूँ", "main order karna chahta hoon", "I would like to order"),
+        p("बिल दीजिए", "bill deejiye", "The bill, please"),
+        p("बहुत स्वादिष्ट था", "bahut swaadisht tha", "It was delicious"),
+      ],
+    },
+  ],
+  ar: [
+    {
+      slug: "directions",
+      title: "Getting Around",
+      description: "Ask for directions and find your way around town.",
+      emoji: "map",
+      phrases: [
+        p("أين المحطة؟", "ayna al-mahatta?", "Where is the station?"),
+        p("انعطف يميناً", "in'atif yameenan", "Turn right"),
+        p("امشِ مستقيماً", "imshi mustaqeeman", "Go straight"),
+        p("هل هو بعيد؟", "hal huwa ba'eed?", "Is it far?"),
+        p("أنا تائه", "ana taa'ih", "I am lost"),
+      ],
+    },
+    {
+      slug: "shopping",
+      title: "Shopping & Money",
+      description: "Buy things, ask prices, and pay at the shop.",
+      emoji: "cart",
+      phrases: [
+        p("كم السعر؟", "kam as-si'r?", "How much is it?"),
+        p("إنه غالٍ جداً", "innahu ghaalin jiddan", "It's too expensive"),
+        p("هل أستطيع الدفع بالبطاقة؟", "hal astatee' ad-daf' bil-bitaaqa?", "Can I pay by card?"),
+        p("أريد شراء هذا", "ureed shiraa' haadha", "I want to buy this"),
+        p("هل لديك فكة؟", "hal ladayka fakka?", "Do you have change?"),
+      ],
+    },
+    {
+      slug: "dining",
+      title: "Eating Out",
+      description: "Order food and handle a meal at a restaurant.",
+      emoji: "food",
+      phrases: [
+        p("طاولة لشخصين", "taawila li-shakhsayn", "A table for two"),
+        p("القائمة من فضلك", "al-qaa'ima min fadlik", "The menu, please"),
+        p("أريد أن أطلب", "ureed an atlub", "I would like to order"),
+        p("الحساب من فضلك", "al-hisaab min fadlik", "The bill, please"),
+        p("كان لذيذاً", "kaana ladheedhan", "It was delicious"),
+      ],
+    },
+  ],
+  ur: [
+    {
+      slug: "directions",
+      title: "Getting Around",
+      description: "Ask for directions and find your way around town.",
+      emoji: "map",
+      phrases: [
+        p("اسٹیشن کہاں ہے؟", "station kahaan hai?", "Where is the station?"),
+        p("دائیں مڑیں", "daayen muren", "Turn right"),
+        p("سیدھے جائیں", "seedhe jaayen", "Go straight"),
+        p("کیا یہ دور ہے؟", "kya yeh door hai?", "Is it far?"),
+        p("میں کھو گیا ہوں", "main kho gaya hoon", "I am lost"),
+      ],
+    },
+    {
+      slug: "shopping",
+      title: "Shopping & Money",
+      description: "Buy things, ask prices, and pay at the shop.",
+      emoji: "cart",
+      phrases: [
+        p("یہ کتنے کا ہے؟", "yeh kitne ka hai?", "How much is it?"),
+        p("یہ بہت مہنگا ہے", "yeh bahut mehnga hai", "It's too expensive"),
+        p("کیا میں کارڈ سے ادا کر سکتا ہوں؟", "kya main card se ada kar sakta hoon?", "Can I pay by card?"),
+        p("میں یہ خریدنا چاہتا ہوں", "main yeh khareedna chahta hoon", "I want to buy this"),
+        p("کیا کھلے پیسے ہیں؟", "kya khule paise hain?", "Do you have change?"),
+      ],
+    },
+    {
+      slug: "dining",
+      title: "Eating Out",
+      description: "Order food and handle a meal at a restaurant.",
+      emoji: "food",
+      phrases: [
+        p("دو افراد کے لیے میز", "do afraad ke liye mez", "A table for two"),
+        p("مینو دیجیے", "menu deejiye", "The menu, please"),
+        p("میں آرڈر کرنا چاہتا ہوں", "main order karna chahta hoon", "I would like to order"),
+        p("بل دیجیے", "bill deejiye", "The bill, please"),
+        p("بہت مزیدار تھا", "bahut mazedaar tha", "It was delicious"),
+      ],
+    },
+  ],
+};
+
+const ADVANCED: Record<string, LessonContent[]> = {
+  es: [
+    {
+      slug: "feelings",
+      title: "Feelings & Opinions",
+      description: "Express what you think and how you feel.",
+      emoji: "heart",
+      phrases: [
+        p("Creo que...", "", "I think that..."),
+        p("En mi opinión", "", "In my opinion"),
+        p("Estoy de acuerdo", "", "I agree"),
+        p("No estoy seguro", "", "I'm not sure"),
+        p("Me preocupa", "", "It worries me"),
+      ],
+    },
+    {
+      slug: "work",
+      title: "Work & Daily Life",
+      description: "Talk about your job, plans and busy days.",
+      emoji: "briefcase",
+      phrases: [
+        p("Tengo una reunión", "", "I have a meeting"),
+        p("Estoy muy ocupado", "", "I am very busy"),
+        p("¿En qué trabajas?", "", "What do you do for work?"),
+        p("Trabajo desde casa", "", "I work from home"),
+        p("Tengo una fecha límite", "", "I have a deadline"),
+      ],
+    },
+    {
+      slug: "expressions",
+      title: "Common Expressions",
+      description: "Idioms and natural phrases native speakers use.",
+      emoji: "sparkles",
+      phrases: [
+        p("Más vale tarde que nunca", "", "Better late than never"),
+        p("Poco a poco", "", "Little by little"),
+        p("Vale la pena", "", "It's worth it"),
+        p("No pasa nada", "", "It's no problem"),
+        p("Tal vez", "", "Maybe"),
+      ],
+    },
+  ],
+  fr: [
+    {
+      slug: "feelings",
+      title: "Feelings & Opinions",
+      description: "Express what you think and how you feel.",
+      emoji: "heart",
+      phrases: [
+        p("Je pense que...", "", "I think that..."),
+        p("À mon avis", "", "In my opinion"),
+        p("Je suis d'accord", "", "I agree"),
+        p("Je ne suis pas sûr", "", "I'm not sure"),
+        p("Ça m'inquiète", "", "It worries me"),
+      ],
+    },
+    {
+      slug: "work",
+      title: "Work & Daily Life",
+      description: "Talk about your job, plans and busy days.",
+      emoji: "briefcase",
+      phrases: [
+        p("J'ai une réunion", "", "I have a meeting"),
+        p("Je suis très occupé", "", "I am very busy"),
+        p("Quel est ton métier ?", "", "What do you do for work?"),
+        p("Je travaille à domicile", "", "I work from home"),
+        p("J'ai une échéance", "", "I have a deadline"),
+      ],
+    },
+    {
+      slug: "expressions",
+      title: "Common Expressions",
+      description: "Idioms and natural phrases native speakers use.",
+      emoji: "sparkles",
+      phrases: [
+        p("Mieux vaut tard que jamais", "", "Better late than never"),
+        p("Petit à petit", "", "Little by little"),
+        p("Ça vaut la peine", "", "It's worth it"),
+        p("Ce n'est pas grave", "", "It's no problem"),
+        p("Peut-être", "", "Maybe"),
+      ],
+    },
+  ],
+  de: [
+    {
+      slug: "feelings",
+      title: "Feelings & Opinions",
+      description: "Express what you think and how you feel.",
+      emoji: "heart",
+      phrases: [
+        p("Ich denke, dass...", "", "I think that..."),
+        p("Meiner Meinung nach", "", "In my opinion"),
+        p("Ich stimme zu", "", "I agree"),
+        p("Ich bin mir nicht sicher", "", "I'm not sure"),
+        p("Das macht mir Sorgen", "", "It worries me"),
+      ],
+    },
+    {
+      slug: "work",
+      title: "Work & Daily Life",
+      description: "Talk about your job, plans and busy days.",
+      emoji: "briefcase",
+      phrases: [
+        p("Ich habe ein Meeting", "", "I have a meeting"),
+        p("Ich bin sehr beschäftigt", "", "I am very busy"),
+        p("Was machst du beruflich?", "", "What do you do for work?"),
+        p("Ich arbeite von zu Hause", "", "I work from home"),
+        p("Ich habe eine Frist", "", "I have a deadline"),
+      ],
+    },
+    {
+      slug: "expressions",
+      title: "Common Expressions",
+      description: "Idioms and natural phrases native speakers use.",
+      emoji: "sparkles",
+      phrases: [
+        p("Besser spät als nie", "", "Better late than never"),
+        p("Nach und nach", "", "Little by little"),
+        p("Es lohnt sich", "", "It's worth it"),
+        p("Kein Problem", "", "It's no problem"),
+        p("Vielleicht", "", "Maybe"),
+      ],
+    },
+  ],
+  it: [
+    {
+      slug: "feelings",
+      title: "Feelings & Opinions",
+      description: "Express what you think and how you feel.",
+      emoji: "heart",
+      phrases: [
+        p("Penso che...", "", "I think that..."),
+        p("Secondo me", "", "In my opinion"),
+        p("Sono d'accordo", "", "I agree"),
+        p("Non sono sicuro", "", "I'm not sure"),
+        p("Mi preoccupa", "", "It worries me"),
+      ],
+    },
+    {
+      slug: "work",
+      title: "Work & Daily Life",
+      description: "Talk about your job, plans and busy days.",
+      emoji: "briefcase",
+      phrases: [
+        p("Ho una riunione", "", "I have a meeting"),
+        p("Sono molto occupato", "", "I am very busy"),
+        p("Che lavoro fai?", "", "What do you do for work?"),
+        p("Lavoro da casa", "", "I work from home"),
+        p("Ho una scadenza", "", "I have a deadline"),
+      ],
+    },
+    {
+      slug: "expressions",
+      title: "Common Expressions",
+      description: "Idioms and natural phrases native speakers use.",
+      emoji: "sparkles",
+      phrases: [
+        p("Meglio tardi che mai", "", "Better late than never"),
+        p("Poco a poco", "", "Little by little"),
+        p("Ne vale la pena", "", "It's worth it"),
+        p("Non c'è problema", "", "It's no problem"),
+        p("Forse", "", "Maybe"),
+      ],
+    },
+  ],
+  pt: [
+    {
+      slug: "feelings",
+      title: "Feelings & Opinions",
+      description: "Express what you think and how you feel.",
+      emoji: "heart",
+      phrases: [
+        p("Acho que...", "", "I think that..."),
+        p("Na minha opinião", "", "In my opinion"),
+        p("Concordo", "", "I agree"),
+        p("Não tenho certeza", "", "I'm not sure"),
+        p("Isso me preocupa", "", "It worries me"),
+      ],
+    },
+    {
+      slug: "work",
+      title: "Work & Daily Life",
+      description: "Talk about your job, plans and busy days.",
+      emoji: "briefcase",
+      phrases: [
+        p("Tenho uma reunião", "", "I have a meeting"),
+        p("Estou muito ocupado", "", "I am very busy"),
+        p("O que você faz?", "", "What do you do for work?"),
+        p("Trabalho de casa", "", "I work from home"),
+        p("Tenho um prazo", "", "I have a deadline"),
+      ],
+    },
+    {
+      slug: "expressions",
+      title: "Common Expressions",
+      description: "Idioms and natural phrases native speakers use.",
+      emoji: "sparkles",
+      phrases: [
+        p("Antes tarde do que nunca", "", "Better late than never"),
+        p("Pouco a pouco", "", "Little by little"),
+        p("Vale a pena", "", "It's worth it"),
+        p("Não tem problema", "", "It's no problem"),
+        p("Talvez", "", "Maybe"),
+      ],
+    },
+  ],
+  zh: [
+    {
+      slug: "feelings",
+      title: "Feelings & Opinions",
+      description: "Express what you think and how you feel.",
+      emoji: "heart",
+      phrases: [
+        p("我觉得...", "wǒ juéde...", "I think that..."),
+        p("在我看来", "zài wǒ kànlái", "In my opinion"),
+        p("我同意", "wǒ tóngyì", "I agree"),
+        p("我不确定", "wǒ bù quèdìng", "I'm not sure"),
+        p("我很担心", "wǒ hěn dānxīn", "I'm worried"),
+      ],
+    },
+    {
+      slug: "work",
+      title: "Work & Daily Life",
+      description: "Talk about your job, plans and busy days.",
+      emoji: "briefcase",
+      phrases: [
+        p("我有一个会议", "wǒ yǒu yí gè huìyì", "I have a meeting"),
+        p("我很忙", "wǒ hěn máng", "I am very busy"),
+        p("你做什么工作?", "nǐ zuò shénme gōngzuò?", "What do you do for work?"),
+        p("我在家工作", "wǒ zài jiā gōngzuò", "I work from home"),
+        p("我有截止日期", "wǒ yǒu jiézhǐ rìqī", "I have a deadline"),
+      ],
+    },
+    {
+      slug: "expressions",
+      title: "Common Expressions",
+      description: "Idioms and natural phrases native speakers use.",
+      emoji: "sparkles",
+      phrases: [
+        p("迟到总比不到好", "chídào zǒng bǐ búdào hǎo", "Better late than never"),
+        p("慢慢来", "mànman lái", "Take it slow / little by little"),
+        p("值得", "zhídé", "It's worth it"),
+        p("没关系", "méi guānxi", "It's no problem"),
+        p("也许", "yěxǔ", "Maybe"),
+      ],
+    },
+  ],
+  ja: [
+    {
+      slug: "feelings",
+      title: "Feelings & Opinions",
+      description: "Express what you think and how you feel.",
+      emoji: "heart",
+      phrases: [
+        p("私は...と思います", "watashi wa ... to omoimasu", "I think that..."),
+        p("私の意見では", "watashi no iken dewa", "In my opinion"),
+        p("賛成です", "sansei desu", "I agree"),
+        p("よく分かりません", "yoku wakarimasen", "I'm not sure"),
+        p("心配です", "shinpai desu", "I'm worried"),
+      ],
+    },
+    {
+      slug: "work",
+      title: "Work & Daily Life",
+      description: "Talk about your job, plans and busy days.",
+      emoji: "briefcase",
+      phrases: [
+        p("会議があります", "kaigi ga arimasu", "I have a meeting"),
+        p("とても忙しいです", "totemo isogashii desu", "I am very busy"),
+        p("お仕事は何ですか?", "oshigoto wa nan desu ka?", "What do you do for work?"),
+        p("在宅勤務です", "zaitaku kinmu desu", "I work from home"),
+        p("締め切りがあります", "shimekiri ga arimasu", "I have a deadline"),
+      ],
+    },
+    {
+      slug: "expressions",
+      title: "Common Expressions",
+      description: "Idioms and natural phrases native speakers use.",
+      emoji: "sparkles",
+      phrases: [
+        p("遅くてもやらないよりまし", "osokutemo yaranai yori mashi", "Better late than never"),
+        p("少しずつ", "sukoshi zutsu", "Little by little"),
+        p("その価値があります", "sono kachi ga arimasu", "It's worth it"),
+        p("大丈夫です", "daijōbu desu", "It's no problem / it's okay"),
+        p("たぶん", "tabun", "Maybe"),
+      ],
+    },
+  ],
+  hi: [
+    {
+      slug: "feelings",
+      title: "Feelings & Opinions",
+      description: "Express what you think and how you feel.",
+      emoji: "heart",
+      phrases: [
+        p("मुझे लगता है कि...", "mujhe lagta hai ki...", "I think that..."),
+        p("मेरी राय में", "meri raay mein", "In my opinion"),
+        p("मैं सहमत हूँ", "main sehmat hoon", "I agree"),
+        p("मुझे यकीन नहीं है", "mujhe yaqeen nahin hai", "I'm not sure"),
+        p("मुझे चिंता है", "mujhe chinta hai", "I'm worried"),
+      ],
+    },
+    {
+      slug: "work",
+      title: "Work & Daily Life",
+      description: "Talk about your job, plans and busy days.",
+      emoji: "briefcase",
+      phrases: [
+        p("मेरी एक मीटिंग है", "meri ek meeting hai", "I have a meeting"),
+        p("मैं बहुत व्यस्त हूँ", "main bahut vyast hoon", "I am very busy"),
+        p("आप क्या काम करते हैं?", "aap kya kaam karte hain?", "What do you do for work?"),
+        p("मैं घर से काम करता हूँ", "main ghar se kaam karta hoon", "I work from home"),
+        p("मेरी एक समय-सीमा है", "meri ek samay-seema hai", "I have a deadline"),
+      ],
+    },
+    {
+      slug: "expressions",
+      title: "Common Expressions",
+      description: "Idioms and natural phrases native speakers use.",
+      emoji: "sparkles",
+      phrases: [
+        p("देर आए दुरुस्त आए", "der aaye durust aaye", "Better late than never"),
+        p("धीरे-धीरे", "dheere-dheere", "Little by little"),
+        p("यह सार्थक है", "yeh saarthak hai", "It's worth it"),
+        p("कोई बात नहीं", "koi baat nahin", "It's no problem"),
+        p("शायद", "shaayad", "Maybe"),
+      ],
+    },
+  ],
+  ar: [
+    {
+      slug: "feelings",
+      title: "Feelings & Opinions",
+      description: "Express what you think and how you feel.",
+      emoji: "heart",
+      phrases: [
+        p("أعتقد أن...", "a'taqid anna...", "I think that..."),
+        p("في رأيي", "fee ra'yee", "In my opinion"),
+        p("أنا موافق", "ana muwaafiq", "I agree"),
+        p("لست متأكداً", "lastu muta'akkidan", "I'm not sure"),
+        p("هذا يقلقني", "haadha yuqliqunee", "It worries me"),
+      ],
+    },
+    {
+      slug: "work",
+      title: "Work & Daily Life",
+      description: "Talk about your job, plans and busy days.",
+      emoji: "briefcase",
+      phrases: [
+        p("لدي اجتماع", "ladayya ijtimaa'", "I have a meeting"),
+        p("أنا مشغول جداً", "ana mashghool jiddan", "I am very busy"),
+        p("ما هو عملك؟", "maa huwa 'amaluk?", "What do you do for work?"),
+        p("أعمل من المنزل", "a'mal min al-manzil", "I work from home"),
+        p("لدي موعد نهائي", "ladayya maw'id nihaa'ee", "I have a deadline"),
+      ],
+    },
+    {
+      slug: "expressions",
+      title: "Common Expressions",
+      description: "Idioms and natural phrases native speakers use.",
+      emoji: "sparkles",
+      phrases: [
+        p("أن تأتي متأخراً خير من ألا تأتي", "an ta'tee muta'akhkhiran khayr min allaa ta'tee", "Better late than never"),
+        p("شيئاً فشيئاً", "shay'an fa-shay'an", "Little by little"),
+        p("يستحق ذلك", "yastahiqq dhaalik", "It's worth it"),
+        p("لا مشكلة", "laa mushkila", "It's no problem"),
+        p("ربما", "rubbamaa", "Maybe"),
+      ],
+    },
+  ],
+  ur: [
+    {
+      slug: "feelings",
+      title: "Feelings & Opinions",
+      description: "Express what you think and how you feel.",
+      emoji: "heart",
+      phrases: [
+        p("میرا خیال ہے کہ...", "mera khayaal hai ke...", "I think that..."),
+        p("میری رائے میں", "meri raaye mein", "In my opinion"),
+        p("میں متفق ہوں", "main muttafiq hoon", "I agree"),
+        p("مجھے یقین نہیں", "mujhe yaqeen nahin", "I'm not sure"),
+        p("مجھے فکر ہے", "mujhe fikr hai", "I'm worried"),
+      ],
+    },
+    {
+      slug: "work",
+      title: "Work & Daily Life",
+      description: "Talk about your job, plans and busy days.",
+      emoji: "briefcase",
+      phrases: [
+        p("میری ایک میٹنگ ہے", "meri ek meeting hai", "I have a meeting"),
+        p("میں بہت مصروف ہوں", "main bahut masroof hoon", "I am very busy"),
+        p("آپ کیا کام کرتے ہیں؟", "aap kya kaam karte hain?", "What do you do for work?"),
+        p("میں گھر سے کام کرتا ہوں", "main ghar se kaam karta hoon", "I work from home"),
+        p("میری ایک ڈیڈ لائن ہے", "meri ek deadline hai", "I have a deadline"),
+      ],
+    },
+    {
+      slug: "expressions",
+      title: "Common Expressions",
+      description: "Idioms and natural phrases native speakers use.",
+      emoji: "sparkles",
+      phrases: [
+        p("دیر آید درست آید", "der aayad durust aayad", "Better late than never"),
+        p("آہستہ آہستہ", "aahista aahista", "Little by little"),
+        p("یہ قابلِ قدر ہے", "yeh qaabil-e-qadar hai", "It's worth it"),
+        p("کوئی بات نہیں", "koi baat nahin", "It's no problem"),
+        p("شاید", "shaayad", "Maybe"),
+      ],
+    },
+  ],
+};
+
+// Apply the `level` tag to a set of authored lessons.
+function tag(lessons: LessonContent[] | undefined, level: LevelCode): Lesson[] {
+  return (lessons ?? []).map((lesson) => ({ ...lesson, level }));
+}
+
+// Flatten the per-level maps into one ordered list per language (beginner first,
+// then intermediate, then advanced). Each lesson carries its `level` so the API
+// can serve every level and the frontend can filter/sort by chosen expertise.
+export const LESSONS_BY_LANGUAGE: Record<string, Lesson[]> = Object.fromEntries(
+  Array.from(
+    new Set([
+      ...Object.keys(BEGINNER),
+      ...Object.keys(INTERMEDIATE),
+      ...Object.keys(ADVANCED),
+    ]),
+  ).map((code) => [
+    code,
+    [
+      ...tag(BEGINNER[code], "beginner"),
+      ...tag(INTERMEDIATE[code], "intermediate"),
+      ...tag(ADVANCED[code], "advanced"),
+    ],
+  ]),
+);

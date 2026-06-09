@@ -12,6 +12,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/hooks/use-language";
+import { getLanguage } from "@workspace/languages";
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useLocation();
@@ -23,7 +24,19 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const [isLessons] = useRoute("/lessons*");
   const [isHome] = useRoute("/");
   const [isSettings] = useRoute("/settings");
-  const { language } = useLanguage();
+  const [isChat, chatParams] = useRoute("/chat/:id");
+  const { language: activeLanguage } = useLanguage();
+
+  // The sidebar "Learning" label reflects the CURRENT conversation's language
+  // when viewing a chat (each chat keeps its own language), falling back to the
+  // global active selection elsewhere.
+  const currentConversation =
+    isChat && chatParams?.id
+      ? conversations?.find((c) => c.id === Number(chatParams.id))
+      : undefined;
+  const language = currentConversation
+    ? getLanguage(currentConversation.language)
+    : activeLanguage;
 
   const handleDelete = (e: React.MouseEvent, id: number) => {
     e.preventDefault();

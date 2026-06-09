@@ -519,6 +519,9 @@ components:
         emoji:
           type: string
           description: A short label or icon hint for the lesson topic
+        level:
+          type: string
+          description: Expertise level this lesson belongs to (beginner/intermediate/advanced)
         phrases:
           type: array
           items:
@@ -527,4 +530,5 @@ components:
         - slug
         - title
         - description
+        - level
         - phrases
