@@ -13,6 +13,7 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/hooks/use-language";
 import { getLanguage } from "@workspace/languages";
+import { LearningBadge } from "@/components/learning-badge";
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useLocation();
@@ -58,24 +59,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         <p className="text-sm text-muted-foreground mt-1 font-medium">Your personal language companion</p>
       </div>
 
-      <div className="px-4 pb-2">
-        <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-          Learning
-        </div>
-        <div className="mt-1.5 rounded-md border border-sidebar-border bg-sidebar-accent/40 px-3 py-2">
-          <span className="text-sm font-semibold text-sidebar-foreground">
-            {language.name}
-          </span>
-          {language.nativeName && language.nativeName !== language.name && (
-            <span
-              className={cn("ml-2 text-sm text-muted-foreground", language.fontClass)}
-              dir={language.direction}
-            >
-              {language.nativeName}
-            </span>
-          )}
-        </div>
-      </div>
+      <LearningBadge language={language} />
 
       <div className="px-4 py-2 space-y-2">
         <Button 
