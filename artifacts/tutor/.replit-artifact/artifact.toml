@@ -1,6 +1,6 @@
 kind = "web"
 previewPath = "/"
-title = "Urdu Tutor"
+title = "Language Tutor"
 version = "1.0.0"
 id = "artifacts/tutor"
 router = "path"

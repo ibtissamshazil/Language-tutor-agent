@@ -1,6 +1,6 @@
-# Language Tutor Agent
+# Language Tutor
 
-An AI-powered language tutor web app: a chat interface where an LLM teaches a target language to English speakers, mixing both languages so learners pick up the right words in context. Supports 10 languages (Spanish, French, German, Italian, Portuguese, Mandarin Chinese, Japanese, Hindi, Arabic, Urdu). Includes browsable beginner lessons (greetings, numbers, common phrases) with native script, transliteration, and English meaning. The app name "Language Tutor Agent" is fixed (it does not track the active language) and is shown in the sidebar/header, the browser tab title, and the social/meta tags.
+An AI-powered language tutor web app: a chat interface where an LLM teaches a target language to English speakers, mixing both languages so learners pick up the right words in context. Supports 10 languages (Spanish, French, German, Italian, Portuguese, Mandarin Chinese, Japanese, Hindi, Arabic, Urdu). Includes browsable beginner lessons (greetings, numbers, common phrases) with native script, transliteration, and English meaning. The app name "Language Tutor" is fixed (it does not track the active language) and is shown in the sidebar/header, the browser tab title, and the social/meta tags.
 
 ## Run & Operate
 
