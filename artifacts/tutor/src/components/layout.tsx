@@ -54,7 +54,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const SidebarContent = () => (
     <div className="flex h-full flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border w-64 md:w-72 shadow-sm">
       <div className="p-4 sm:p-6 pb-4">
-        <h1 className="text-2xl font-bold text-primary tracking-tight">Language Tutor Agent</h1>
+        <h1 className="text-2xl font-bold text-primary tracking-tight">Language Tutor</h1>
         <p className="text-sm text-muted-foreground mt-1 font-medium">Your personal language companion</p>
       </div>
 
@@ -160,7 +160,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             <SidebarContent />
           </SheetContent>
         </Sheet>
-        <div className="ml-2 font-bold text-lg text-primary">Language Tutor Agent</div>
+        <div className="ml-2 font-bold text-lg text-primary">Language Tutor</div>
       </div>
 
       {/* Desktop Sidebar */}
