@@ -1,7 +1,15 @@
-import { useGetLesson, getGetLessonQueryKey } from "@workspace/api-client-react";
+import {
+  useGetLesson,
+  getGetLessonQueryKey,
+  useListLessonCompletions,
+  getListLessonCompletionsQueryKey,
+  useMarkLessonCompleted,
+  useUnmarkLessonCompleted,
+} from "@workspace/api-client-react";
 import { useRoute, Link } from "wouter";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, MessageSquarePlus } from "lucide-react";
+import { ArrowLeft, MessageSquarePlus, CheckCircle2, Circle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useLanguage } from "@/hooks/use-language";
 import { cn } from "@/lib/utils";
@@ -10,11 +18,38 @@ export default function LessonDetailPage() {
   const [, params] = useRoute("/lessons/:slug");
   const slug = params?.slug || "";
   const { code: languageCode, language } = useLanguage();
+  const queryClient = useQueryClient();
 
   const queryParams = { language: languageCode };
   const { data: lesson, isLoading } = useGetLesson(slug, queryParams, {
     query: { enabled: !!slug, queryKey: getGetLessonQueryKey(slug, queryParams) }
   });
+
+  const completionsParams = { language: languageCode };
+  const completionsQueryKey = getListLessonCompletionsQueryKey(completionsParams);
+  const { data: completions } = useListLessonCompletions(completionsParams, {
+    query: { queryKey: completionsQueryKey },
+  });
+  const isCompleted = completions?.completedSlugs.includes(slug) ?? false;
+
+  const invalidateCompletions = () =>
+    queryClient.invalidateQueries({ queryKey: completionsQueryKey });
+  const markCompleted = useMarkLessonCompleted({
+    mutation: { onSuccess: invalidateCompletions },
+  });
+  const unmarkCompleted = useUnmarkLessonCompleted({
+    mutation: { onSuccess: invalidateCompletions },
+  });
+  const isToggling = markCompleted.isPending || unmarkCompleted.isPending;
+
+  const toggleCompleted = () => {
+    if (isToggling) return;
+    if (isCompleted) {
+      unmarkCompleted.mutate({ slug, params: { language: languageCode } });
+    } else {
+      markCompleted.mutate({ data: { slug, language: languageCode } });
+    }
+  };
 
   if (isLoading) {
     return (
@@ -59,12 +94,31 @@ export default function LessonDetailPage() {
               {lesson.description}
             </p>
           </div>
-          <Link href="/" className="shrink-0">
-            <Button size="lg" className="rounded-xl w-full md:w-auto font-medium">
-              <MessageSquarePlus className="mr-2 h-5 w-5" />
-              Practice in Chat
+          <div className="flex flex-col sm:flex-row gap-3 shrink-0">
+            <Button
+              size="lg"
+              variant={isCompleted ? "secondary" : "outline"}
+              onClick={toggleCompleted}
+              disabled={isToggling}
+              className={cn(
+                "rounded-xl w-full md:w-auto font-medium",
+                isCompleted && "text-primary",
+              )}
+            >
+              {isCompleted ? (
+                <CheckCircle2 className="mr-2 h-5 w-5" />
+              ) : (
+                <Circle className="mr-2 h-5 w-5" />
+              )}
+              {isCompleted ? "Completed" : "Mark as completed"}
             </Button>
-          </Link>
+            <Link href="/" className="shrink-0">
+              <Button size="lg" className="rounded-xl w-full md:w-auto font-medium">
+                <MessageSquarePlus className="mr-2 h-5 w-5" />
+                Practice in Chat
+              </Button>
+            </Link>
+          </div>
         </div>
 
         <div className="space-y-6">
