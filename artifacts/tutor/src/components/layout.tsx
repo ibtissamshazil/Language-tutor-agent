@@ -12,7 +12,6 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/hooks/use-language";
-import { LanguageSelect } from "@/components/language-select";
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useLocation();
@@ -24,7 +23,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const [isLessons] = useRoute("/lessons*");
   const [isHome] = useRoute("/");
   const [isSettings] = useRoute("/settings");
-  const { code: languageCode, setCode: setLanguageCode } = useLanguage();
+  const { language } = useLanguage();
 
   const handleDelete = (e: React.MouseEvent, id: number) => {
     e.preventDefault();
@@ -47,15 +46,22 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       </div>
 
       <div className="px-4 pb-2">
-        <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+        <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
           Learning
-        </label>
-        <LanguageSelect
-          value={languageCode}
-          onChange={setLanguageCode}
-          aria-label="Choose language to learn"
-          className="mt-1.5 w-full"
-        />
+        </div>
+        <div className="mt-1.5 rounded-md border border-sidebar-border bg-sidebar-accent/40 px-3 py-2">
+          <span className="text-sm font-semibold text-sidebar-foreground">
+            {language.name}
+          </span>
+          {language.nativeName && language.nativeName !== language.name && (
+            <span
+              className={cn("ml-2 text-sm text-muted-foreground", language.fontClass)}
+              dir={language.direction}
+            >
+              {language.nativeName}
+            </span>
+          )}
+        </div>
       </div>
 
       <div className="px-4 py-2 space-y-2">
