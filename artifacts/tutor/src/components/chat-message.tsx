@@ -42,7 +42,7 @@ export function ChatMessage({
             {term.native}
           </span>
           {term.transliteration && (
-            <span className="text-sm italic text-secondary-foreground/80">
+            <span className="text-sm italic text-foreground/70">
               {term.transliteration}
             </span>
           )}

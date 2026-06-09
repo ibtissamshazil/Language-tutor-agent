@@ -15,8 +15,8 @@ export interface DailyProgress {
   percent: number;
   /** Whether today's goal has been reached */
   achieved: boolean;
-  /** Number of target-language words/phrases taught today */
-  phrasesLearned: number;
+  /** Number of target-language words taught today (the daily goal unit) */
+  wordsLearned: number;
   /** Language code this progress is scoped to */
   language: string;
 }

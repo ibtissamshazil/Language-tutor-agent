@@ -9,6 +9,10 @@ export const conversations = pgTable("conversations", {
   // old chat still renders and scores in its original language even after the
   // global selection changes. Defaults to "ur" to preserve pre-existing chats.
   language: text("language").notNull().default("ur"),
+  // The learner's expertise level this conversation is taught at. Persisted so
+  // reopening an old chat keeps its original teaching depth even after the
+  // active level changes. Defaults to "beginner".
+  level: text("level").notNull().default("beginner"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 

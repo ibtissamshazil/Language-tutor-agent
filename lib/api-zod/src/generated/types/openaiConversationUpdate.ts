@@ -14,4 +14,6 @@ export interface OpenaiConversationUpdate {
   title?: string;
   /** New language code for this conversation */
   language?: string;
+  /** New expertise level for this conversation */
+  level?: string;
 }

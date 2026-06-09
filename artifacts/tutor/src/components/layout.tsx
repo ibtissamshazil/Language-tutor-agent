@@ -6,7 +6,7 @@ import {
 } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { MessageSquare, BookOpen, Plus, Trash2, Menu } from "lucide-react";
+import { MessageSquare, BookOpen, Plus, Trash2, Menu, Settings } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useState } from "react";
@@ -23,6 +23,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   const [isLessons] = useRoute("/lessons*");
   const [isHome] = useRoute("/");
+  const [isSettings] = useRoute("/settings");
   const { code: languageCode, setCode: setLanguageCode } = useLanguage();
 
   const handleDelete = (e: React.MouseEvent, id: number) => {
@@ -41,7 +42,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const SidebarContent = () => (
     <div className="flex h-full flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border w-64 md:w-72 shadow-sm">
       <div className="p-4 sm:p-6 pb-4">
-        <h1 className="text-2xl font-bold text-primary tracking-tight">Lingo Tutor</h1>
+        <h1 className="text-2xl font-bold text-primary tracking-tight">Language Tutor Agent</h1>
         <p className="text-sm text-muted-foreground mt-1 font-medium">Your personal language companion</p>
       </div>
 
@@ -73,6 +74,14 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         >
           <BookOpen className="mr-2 h-4 w-4" />
           Lessons
+        </Button>
+        <Button 
+          variant={isSettings ? "secondary" : "ghost"} 
+          className="w-full justify-start font-medium"
+          onClick={() => { setLocation("/settings"); setIsMobileOpen(false); }}
+        >
+          <Settings className="mr-2 h-4 w-4" />
+          Settings
         </Button>
       </div>
 
@@ -132,7 +141,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             <SidebarContent />
           </SheetContent>
         </Sheet>
-        <div className="ml-2 font-bold text-lg text-primary">Lingo Tutor</div>
+        <div className="ml-2 font-bold text-lg text-primary">Language Tutor Agent</div>
       </div>
 
       {/* Desktop Sidebar */}

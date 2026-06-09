@@ -14,6 +14,8 @@ export interface OpenaiConversation {
   title: string;
   /** Language code the learner is studying in this conversation */
   language: string;
+  /** Expertise level this conversation is taught at */
+  level: string;
   createdAt: string;
 }
 
@@ -33,6 +35,8 @@ export interface OpenaiConversationInput {
   title: string;
   /** Language code to study in this conversation */
   language?: string;
+  /** Expertise level to teach this conversation at */
+  level?: string;
 }
 
 export interface OpenaiConversationUpdate {
@@ -43,6 +47,8 @@ export interface OpenaiConversationUpdate {
   title?: string;
   /** New language code for this conversation */
   language?: string;
+  /** New expertise level for this conversation */
+  level?: string;
 }
 
 export interface OpenaiMessageInput {
@@ -58,6 +64,8 @@ export interface OpenaiConversationWithMessages {
   title: string;
   /** Language code the learner is studying in this conversation */
   language: string;
+  /** Expertise level this conversation is taught at */
+  level: string;
   createdAt: string;
   messages: OpenaiMessage[];
 }
@@ -75,8 +83,8 @@ export interface DailyProgress {
   percent: number;
   /** Whether today's goal has been reached */
   achieved: boolean;
-  /** Number of target-language words/phrases taught today */
-  phrasesLearned: number;
+  /** Number of target-language words taught today (the daily goal unit) */
+  wordsLearned: number;
   /** Language code this progress is scoped to */
   language: string;
 }

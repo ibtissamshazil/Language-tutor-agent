@@ -2,3 +2,4 @@
 - [Daily progress system](daily-progress-system.md) — progress derived from taught terms in today's assistant messages (not stored); recognized by shared `[[native|translit|english]]` markup parser, not unicode regex; tune DAILY_TARGET only.
 - [Language registry](language-registry.md) — `@workspace/languages` is the single source of truth (prompt/scoring/lessons/render/model); add a language there, not by editing per-side code.
 - [OpenRouter free LLM](openrouter-free-llm.md) — tutor runs free via OpenRouter + own key; `:free` slugs flip to paid / 429, verify against live /models before hardcoding.
+- [Missing @workspace/* symlink](workspace-package-symlink.md) — after adding a lib export, leaf typecheck may fail to resolve the import; `pnpm install` repairs the symlink even if "up to date".

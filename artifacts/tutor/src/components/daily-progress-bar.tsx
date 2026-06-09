@@ -16,7 +16,7 @@ export function DailyProgressBar({ language }: { language: string }) {
 
   const percent = data?.percent ?? 0;
   const achieved = data?.achieved ?? false;
-  const phrases = data?.phrasesLearned ?? 0;
+  const words = data?.wordsLearned ?? 0;
 
   return (
     <div className="shrink-0 border-b border-border bg-background/80 backdrop-blur-sm px-4 sm:px-6 lg:px-8 py-3">
@@ -33,7 +33,7 @@ export function DailyProgressBar({ language }: { language: string }) {
           <span className="text-xs text-muted-foreground">
             {achieved
               ? "Goal reached. Great work today."
-              : `${phrases} ${phrases === 1 ? "phrase" : "phrases"} learned today`}
+              : `${words} ${words === 1 ? "word" : "words"} learned today`}
           </span>
         </div>
         <div className="h-2 w-full rounded-full bg-muted overflow-hidden">

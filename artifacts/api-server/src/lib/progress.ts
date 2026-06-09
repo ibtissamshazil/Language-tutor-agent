@@ -14,24 +14,25 @@
 
 import { countLearnings } from "@workspace/languages";
 
-export const DAILY_TARGET = 60;
+// The daily goal is measured in WORDS learned today. Each taught term
+// contributes the number of words in its native form (min 1), so this is the
+// same total as the weighted `points` from the markup scorer.
+export const DAILY_TARGET = 25;
 
 export interface DailyProgress {
   points: number;
   target: number;
   percent: number;
   achieved: boolean;
-  phrasesLearned: number;
+  wordsLearned: number;
 }
 
 /** Aggregate today's learnings across many assistant message contents. */
 export function summarizeProgress(contents: string[]): DailyProgress {
   let points = 0;
-  let phrasesLearned = 0;
   for (const content of contents) {
-    const { phrases, points: p } = countLearnings(content);
+    const { points: p } = countLearnings(content);
     points += p;
-    phrasesLearned += phrases;
   }
   const percent = Math.min(100, Math.round((points / DAILY_TARGET) * 100));
   return {
@@ -39,7 +40,9 @@ export function summarizeProgress(contents: string[]): DailyProgress {
     target: DAILY_TARGET,
     percent,
     achieved: points >= DAILY_TARGET,
-    phrasesLearned,
+    // Words learned today is the goal unit; it equals the weighted point total
+    // (each taught term scores its native word count, floor of 1).
+    wordsLearned: points,
   };
 }
 
