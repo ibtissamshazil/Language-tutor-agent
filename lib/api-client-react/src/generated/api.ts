@@ -25,6 +25,9 @@ import type {
   GetProgressTodayParams,
   HealthStatus,
   Lesson,
+  LessonCompletionInput,
+  LessonCompletions,
+  ListLessonCompletionsParams,
   ListLessonsParams,
   OpenaiConversation,
   OpenaiConversationInput,
@@ -32,7 +35,8 @@ import type {
   OpenaiConversationWithMessages,
   OpenaiError,
   OpenaiMessage,
-  OpenaiMessageInput
+  OpenaiMessageInput,
+  UnmarkLessonCompletedParams
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -810,6 +814,242 @@ export function useListLessons<TData = Awaited<ReturnType<typeof listLessons>>, 
 
 
 
+
+export const getListLessonCompletionsUrl = (params?: ListLessonCompletionsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/lesson-completions?${stringifiedParams}` : `/api/lesson-completions`
+}
+
+/**
+ * Returns the slugs of lessons the learner has marked complete for the requested language.
+ * @summary List completed lesson slugs for a language
+ */
+export const listLessonCompletions = async (params?: ListLessonCompletionsParams, options?: RequestInit): Promise<LessonCompletions> => {
+
+  return customFetch<LessonCompletions>(getListLessonCompletionsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListLessonCompletionsQueryKey = (params?: ListLessonCompletionsParams,) => {
+    return [
+    `/api/lesson-completions`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListLessonCompletionsQueryOptions = <TData = Awaited<ReturnType<typeof listLessonCompletions>>, TError = ErrorType<unknown>>(params?: ListLessonCompletionsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listLessonCompletions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListLessonCompletionsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listLessonCompletions>>> = ({ signal }) => listLessonCompletions(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listLessonCompletions>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListLessonCompletionsQueryResult = NonNullable<Awaited<ReturnType<typeof listLessonCompletions>>>
+export type ListLessonCompletionsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List completed lesson slugs for a language
+ */
+
+export function useListLessonCompletions<TData = Awaited<ReturnType<typeof listLessonCompletions>>, TError = ErrorType<unknown>>(
+ params?: ListLessonCompletionsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listLessonCompletions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListLessonCompletionsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getMarkLessonCompletedUrl = () => {
+
+
+
+
+  return `/api/lesson-completions`
+}
+
+/**
+ * Idempotently records that a lesson has been completed for the given language.
+ * @summary Mark a lesson as completed for a language
+ */
+export const markLessonCompleted = async (lessonCompletionInput: LessonCompletionInput, options?: RequestInit): Promise<LessonCompletions> => {
+
+  return customFetch<LessonCompletions>(getMarkLessonCompletedUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      lessonCompletionInput,)
+  }
+);}
+
+
+
+
+export const getMarkLessonCompletedMutationOptions = <TError = ErrorType<OpenaiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markLessonCompleted>>, TError,{data: BodyType<LessonCompletionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof markLessonCompleted>>, TError,{data: BodyType<LessonCompletionInput>}, TContext> => {
+
+const mutationKey = ['markLessonCompleted'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof markLessonCompleted>>, {data: BodyType<LessonCompletionInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  markLessonCompleted(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type MarkLessonCompletedMutationResult = NonNullable<Awaited<ReturnType<typeof markLessonCompleted>>>
+    export type MarkLessonCompletedMutationBody = BodyType<LessonCompletionInput>
+    export type MarkLessonCompletedMutationError = ErrorType<OpenaiError>
+
+    /**
+ * @summary Mark a lesson as completed for a language
+ */
+export const useMarkLessonCompleted = <TError = ErrorType<OpenaiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markLessonCompleted>>, TError,{data: BodyType<LessonCompletionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof markLessonCompleted>>,
+        TError,
+        {data: BodyType<LessonCompletionInput>},
+        TContext
+      > => {
+      return useMutation(getMarkLessonCompletedMutationOptions(options));
+    }
+
+export const getUnmarkLessonCompletedUrl = (slug: string,
+    params?: UnmarkLessonCompletedParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/lesson-completions/${slug}?${stringifiedParams}` : `/api/lesson-completions/${slug}`
+}
+
+/**
+ * @summary Unmark a completed lesson for a language
+ */
+export const unmarkLessonCompleted = async (slug: string,
+    params?: UnmarkLessonCompletedParams, options?: RequestInit): Promise<LessonCompletions> => {
+
+  return customFetch<LessonCompletions>(getUnmarkLessonCompletedUrl(slug,params),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getUnmarkLessonCompletedMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unmarkLessonCompleted>>, TError,{slug: string;params?: UnmarkLessonCompletedParams}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof unmarkLessonCompleted>>, TError,{slug: string;params?: UnmarkLessonCompletedParams}, TContext> => {
+
+const mutationKey = ['unmarkLessonCompleted'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof unmarkLessonCompleted>>, {slug: string;params?: UnmarkLessonCompletedParams}> = (props) => {
+          const {slug,params} = props ?? {};
+
+          return  unmarkLessonCompleted(slug,params,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UnmarkLessonCompletedMutationResult = NonNullable<Awaited<ReturnType<typeof unmarkLessonCompleted>>>
+
+    export type UnmarkLessonCompletedMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Unmark a completed lesson for a language
+ */
+export const useUnmarkLessonCompleted = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unmarkLessonCompleted>>, TError,{slug: string;params?: UnmarkLessonCompletedParams}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof unmarkLessonCompleted>>,
+        TError,
+        {slug: string;params?: UnmarkLessonCompletedParams},
+        TContext
+      > => {
+      return useMutation(getUnmarkLessonCompletedMutationOptions(options));
+    }
 
 export const getGetLessonUrl = (slug: string,
     params?: GetLessonParams,) => {

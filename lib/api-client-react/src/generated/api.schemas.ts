@@ -90,6 +90,24 @@ export interface LessonPhrase {
   english: string;
 }
 
+export interface LessonCompletions {
+  /** Language code these completions are scoped to */
+  language: string;
+  /** Slugs of lessons that have been marked complete */
+  completedSlugs: string[];
+}
+
+export interface LessonCompletionInput {
+  /**
+     * Slug of the lesson to mark complete
+     * @minLength 1
+     * @maxLength 200
+     */
+  slug: string;
+  /** Language code the lesson belongs to */
+  language?: string;
+}
+
 export interface Lesson {
   slug: string;
   title: string;
@@ -109,6 +127,20 @@ language?: string;
 export type ListLessonsParams = {
 /**
  * Language code to return lessons for. Defaults to the default language.
+ */
+language?: string;
+};
+
+export type ListLessonCompletionsParams = {
+/**
+ * Language code to return completions for. Defaults to the default language.
+ */
+language?: string;
+};
+
+export type UnmarkLessonCompletedParams = {
+/**
+ * Language code the completion belongs to. Defaults to the default language.
  */
 language?: string;
 };

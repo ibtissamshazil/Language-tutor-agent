@@ -6,4 +6,7 @@ export * from "./generated/types";
 // Re-export the zod schema versions explicitly so they win the ambiguity — the
 // runtime validators are the point of this package, and consumers that need the
 // param *types* import them from @workspace/api-client-react instead.
-export { GetLessonParams } from "./generated/api";
+export {
+  GetLessonParams,
+  UnmarkLessonCompletedParams,
+} from "./generated/api";

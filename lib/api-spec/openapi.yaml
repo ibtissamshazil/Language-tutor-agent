@@ -14,6 +14,8 @@ tags:
     description: OpenAI AI chat operations
   - name: lessons
     description: Beginner lesson content per language
+  - name: lesson-completions
+    description: Per-language lesson completion tracking
 paths:
   /healthz:
     get:
@@ -214,6 +216,74 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Lesson"
+  /lesson-completions:
+    get:
+      operationId: listLessonCompletions
+      tags: [lesson-completions]
+      summary: List completed lesson slugs for a language
+      description: Returns the slugs of lessons the learner has marked complete for the requested language.
+      parameters:
+        - name: language
+          in: query
+          required: false
+          description: Language code to return completions for. Defaults to the default language.
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Lesson completion summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LessonCompletions"
+    post:
+      operationId: markLessonCompleted
+      tags: [lesson-completions]
+      summary: Mark a lesson as completed for a language
+      description: Idempotently records that a lesson has been completed for the given language.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LessonCompletionInput"
+      responses:
+        "200":
+          description: Updated lesson completion summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LessonCompletions"
+        "400":
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpenaiError"
+  /lesson-completions/{slug}:
+    delete:
+      operationId: unmarkLessonCompleted
+      tags: [lesson-completions]
+      summary: Unmark a completed lesson for a language
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: language
+          in: query
+          required: false
+          description: Language code the completion belongs to. Defaults to the default language.
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Updated lesson completion summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LessonCompletions"
   /lessons/{slug}:
     get:
       operationId: getLesson
@@ -396,6 +466,33 @@ components:
         - native
         - transliteration
         - english
+    LessonCompletions:
+      type: object
+      properties:
+        language:
+          type: string
+          description: Language code these completions are scoped to
+        completedSlugs:
+          type: array
+          description: Slugs of lessons that have been marked complete
+          items:
+            type: string
+      required:
+        - language
+        - completedSlugs
+    LessonCompletionInput:
+      type: object
+      properties:
+        slug:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: Slug of the lesson to mark complete
+        language:
+          type: string
+          description: Language code the lesson belongs to
+      required:
+        - slug
     Lesson:
       type: object
       properties:

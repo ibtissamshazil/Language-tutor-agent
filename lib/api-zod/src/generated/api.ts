@@ -170,6 +170,56 @@ export const ListLessonsResponse = zod.array(ListLessonsResponseItem)
 
 
 /**
+ * Returns the slugs of lessons the learner has marked complete for the requested language.
+ * @summary List completed lesson slugs for a language
+ */
+export const ListLessonCompletionsQueryParams = zod.object({
+  "language": zod.coerce.string().optional().describe('Language code to return completions for. Defaults to the default language.')
+})
+
+export const ListLessonCompletionsResponse = zod.object({
+  "language": zod.string().describe('Language code these completions are scoped to'),
+  "completedSlugs": zod.array(zod.string()).describe('Slugs of lessons that have been marked complete')
+})
+
+
+/**
+ * Idempotently records that a lesson has been completed for the given language.
+ * @summary Mark a lesson as completed for a language
+ */
+export const markLessonCompletedBodySlugMax = 200;
+
+
+
+export const MarkLessonCompletedBody = zod.object({
+  "slug": zod.string().min(1).max(markLessonCompletedBodySlugMax).describe('Slug of the lesson to mark complete'),
+  "language": zod.string().optional().describe('Language code the lesson belongs to')
+})
+
+export const MarkLessonCompletedResponse = zod.object({
+  "language": zod.string().describe('Language code these completions are scoped to'),
+  "completedSlugs": zod.array(zod.string()).describe('Slugs of lessons that have been marked complete')
+})
+
+
+/**
+ * @summary Unmark a completed lesson for a language
+ */
+export const UnmarkLessonCompletedParams = zod.object({
+  "slug": zod.coerce.string()
+})
+
+export const UnmarkLessonCompletedQueryParams = zod.object({
+  "language": zod.coerce.string().optional().describe('Language code the completion belongs to. Defaults to the default language.')
+})
+
+export const UnmarkLessonCompletedResponse = zod.object({
+  "language": zod.string().describe('Language code these completions are scoped to'),
+  "completedSlugs": zod.array(zod.string()).describe('Slugs of lessons that have been marked complete')
+})
+
+
+/**
  * @summary Get a single lesson by slug
  */
 export const GetLessonParams = zod.object({
