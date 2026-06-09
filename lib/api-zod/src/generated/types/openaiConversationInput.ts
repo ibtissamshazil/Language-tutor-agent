@@ -12,4 +12,6 @@ export interface OpenaiConversationInput {
      * @maxLength 200
      */
   title: string;
+  /** Language code to study in this conversation */
+  language?: string;
 }

@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { type LanguageDef } from "@workspace/languages";
 
 // LLM provider resolution.
 //
@@ -16,9 +17,14 @@ import OpenAI from "openai";
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 
-// A capable free OpenRouter model. Override with OPENROUTER_MODEL if desired.
-const OPENROUTER_MODEL =
-  process.env.OPENROUTER_MODEL ?? "openai/gpt-oss-120b:free";
+// Shared free OpenRouter default, used when neither a per-language model nor the
+// OPENROUTER_MODEL override is set. :free slugs come and go / get rate-limited,
+// so this is intentionally overridable.
+const DEFAULT_OPENROUTER_MODEL = "openai/gpt-oss-120b:free";
+
+// Global escape hatch: when set, this overrides EVERY language's model. Useful
+// when a particular free slug starts failing across the board.
+const OPENROUTER_MODEL_OVERRIDE = process.env.OPENROUTER_MODEL;
 
 // The Replit OpenAI integration model used in fallback mode.
 const OPENAI_MODEL = "gpt-5.4";
@@ -48,4 +54,18 @@ function createClient(): OpenAI {
 
 export const llm: OpenAI = createClient();
 
-export const LLM_MODEL = usingOpenRouter ? OPENROUTER_MODEL : OPENAI_MODEL;
+/**
+ * Resolve the model slug to use for a given language.
+ *
+ * OpenRouter: a global OPENROUTER_MODEL override wins; otherwise the language's
+ * own model from the registry (a stronger model for harder scripts); otherwise
+ * the shared default. The Replit fallback always uses its single capable model.
+ */
+export function resolveModel(language: LanguageDef): string {
+  if (!usingOpenRouter) return OPENAI_MODEL;
+  return (
+    OPENROUTER_MODEL_OVERRIDE ??
+    language.model?.openRouter ??
+    DEFAULT_OPENROUTER_MODEL
+  );
+}

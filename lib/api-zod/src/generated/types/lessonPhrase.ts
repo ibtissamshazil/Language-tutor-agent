@@ -7,9 +7,9 @@
  */
 
 export interface LessonPhrase {
-  /** The phrase written in Urdu script */
-  urdu: string;
-  /** Roman/English transliteration of the Urdu phrase */
+  /** The phrase written in the target language's native script */
+  native: string;
+  /** Roman/English transliteration (may be empty for Latin scripts) */
   transliteration: string;
   /** English meaning */
   english: string;

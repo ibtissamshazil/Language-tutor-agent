@@ -10,6 +10,8 @@ import type { OpenaiMessage } from './openaiMessage';
 export interface OpenaiConversationWithMessages {
   id: number;
   title: string;
+  /** Language code the learner is studying in this conversation */
+  language: string;
   createdAt: Date;
   messages: OpenaiMessage[];
 }

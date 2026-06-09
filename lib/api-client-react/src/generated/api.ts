@@ -21,10 +21,14 @@ import type {
 
 import type {
   DailyProgress,
+  GetLessonParams,
+  GetProgressTodayParams,
   HealthStatus,
   Lesson,
+  ListLessonsParams,
   OpenaiConversation,
   OpenaiConversationInput,
+  OpenaiConversationUpdate,
   OpenaiConversationWithMessages,
   OpenaiError,
   OpenaiMessage,
@@ -346,6 +350,78 @@ export function useGetOpenaiConversation<TData = Awaited<ReturnType<typeof getOp
 
 
 
+export const getUpdateOpenaiConversationUrl = (id: number,) => {
+
+
+
+
+  return `/api/openai/conversations/${id}`
+}
+
+/**
+ * @summary Update a conversation (e.g. change its language)
+ */
+export const updateOpenaiConversation = async (id: number,
+    openaiConversationUpdate: OpenaiConversationUpdate, options?: RequestInit): Promise<OpenaiConversation> => {
+
+  return customFetch<OpenaiConversation>(getUpdateOpenaiConversationUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      openaiConversationUpdate,)
+  }
+);}
+
+
+
+
+export const getUpdateOpenaiConversationMutationOptions = <TError = ErrorType<OpenaiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateOpenaiConversation>>, TError,{id: number;data: BodyType<OpenaiConversationUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateOpenaiConversation>>, TError,{id: number;data: BodyType<OpenaiConversationUpdate>}, TContext> => {
+
+const mutationKey = ['updateOpenaiConversation'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateOpenaiConversation>>, {id: number;data: BodyType<OpenaiConversationUpdate>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateOpenaiConversation(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateOpenaiConversationMutationResult = NonNullable<Awaited<ReturnType<typeof updateOpenaiConversation>>>
+    export type UpdateOpenaiConversationMutationBody = BodyType<OpenaiConversationUpdate>
+    export type UpdateOpenaiConversationMutationError = ErrorType<OpenaiError>
+
+    /**
+ * @summary Update a conversation (e.g. change its language)
+ */
+export const useUpdateOpenaiConversation = <TError = ErrorType<OpenaiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateOpenaiConversation>>, TError,{id: number;data: BodyType<OpenaiConversationUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateOpenaiConversation>>,
+        TError,
+        {id: number;data: BodyType<OpenaiConversationUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateOpenaiConversationMutationOptions(options));
+    }
+
 export const getDeleteOpenaiConversationUrl = (id: number,) => {
 
 
@@ -565,21 +641,28 @@ export const useSendOpenaiMessage = <TError = ErrorType<unknown>,
       return useMutation(getSendOpenaiMessageMutationOptions(options));
     }
 
-export const getGetProgressTodayUrl = () => {
+export const getGetProgressTodayUrl = (params?: GetProgressTodayParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/progress/today`
+  return stringifiedParams.length > 0 ? `/api/progress/today?${stringifiedParams}` : `/api/progress/today`
 }
 
 /**
- * Returns the student's progress toward today's learning goal.
+ * Returns the student's progress toward today's learning goal for a language.
  * @summary Today's learning progress
  */
-export const getProgressToday = async ( options?: RequestInit): Promise<DailyProgress> => {
+export const getProgressToday = async (params?: GetProgressTodayParams, options?: RequestInit): Promise<DailyProgress> => {
 
-  return customFetch<DailyProgress>(getGetProgressTodayUrl(),
+  return customFetch<DailyProgress>(getGetProgressTodayUrl(params),
   {
     ...options,
     method: 'GET'
@@ -592,23 +675,23 @@ export const getProgressToday = async ( options?: RequestInit): Promise<DailyPro
 
 
 
-export const getGetProgressTodayQueryKey = () => {
+export const getGetProgressTodayQueryKey = (params?: GetProgressTodayParams,) => {
     return [
-    `/api/progress/today`
+    `/api/progress/today`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getGetProgressTodayQueryOptions = <TData = Awaited<ReturnType<typeof getProgressToday>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getProgressToday>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetProgressTodayQueryOptions = <TData = Awaited<ReturnType<typeof getProgressToday>>, TError = ErrorType<unknown>>(params?: GetProgressTodayParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getProgressToday>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetProgressTodayQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getGetProgressTodayQueryKey(params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getProgressToday>>> = ({ signal }) => getProgressToday({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getProgressToday>>> = ({ signal }) => getProgressToday(params, { signal, ...requestOptions });
 
 
 
@@ -626,11 +709,11 @@ export type GetProgressTodayQueryError = ErrorType<unknown>
  */
 
 export function useGetProgressToday<TData = Awaited<ReturnType<typeof getProgressToday>>, TError = ErrorType<unknown>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getProgressToday>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+ params?: GetProgressTodayParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getProgressToday>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getGetProgressTodayQueryOptions(options)
+  const queryOptions = getGetProgressTodayQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
@@ -643,21 +726,28 @@ export function useGetProgressToday<TData = Awaited<ReturnType<typeof getProgres
 
 
 
-export const getListLessonsUrl = () => {
+export const getListLessonsUrl = (params?: ListLessonsParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/lessons`
+  return stringifiedParams.length > 0 ? `/api/lessons?${stringifiedParams}` : `/api/lessons`
 }
 
 /**
- * Returns structured beginner Urdu lessons with vocabulary and phrases.
- * @summary List beginner Urdu lessons
+ * Returns structured beginner lessons with vocabulary and phrases for the requested language.
+ * @summary List beginner lessons for a language
  */
-export const listLessons = async ( options?: RequestInit): Promise<Lesson[]> => {
+export const listLessons = async (params?: ListLessonsParams, options?: RequestInit): Promise<Lesson[]> => {
 
-  return customFetch<Lesson[]>(getListLessonsUrl(),
+  return customFetch<Lesson[]>(getListLessonsUrl(params),
   {
     ...options,
     method: 'GET'
@@ -670,23 +760,23 @@ export const listLessons = async ( options?: RequestInit): Promise<Lesson[]> => 
 
 
 
-export const getListLessonsQueryKey = () => {
+export const getListLessonsQueryKey = (params?: ListLessonsParams,) => {
     return [
-    `/api/lessons`
+    `/api/lessons`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getListLessonsQueryOptions = <TData = Awaited<ReturnType<typeof listLessons>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listLessons>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getListLessonsQueryOptions = <TData = Awaited<ReturnType<typeof listLessons>>, TError = ErrorType<unknown>>(params?: ListLessonsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listLessons>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getListLessonsQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getListLessonsQueryKey(params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof listLessons>>> = ({ signal }) => listLessons({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listLessons>>> = ({ signal }) => listLessons(params, { signal, ...requestOptions });
 
 
 
@@ -700,15 +790,15 @@ export type ListLessonsQueryError = ErrorType<unknown>
 
 
 /**
- * @summary List beginner Urdu lessons
+ * @summary List beginner lessons for a language
  */
 
 export function useListLessons<TData = Awaited<ReturnType<typeof listLessons>>, TError = ErrorType<unknown>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listLessons>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+ params?: ListLessonsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listLessons>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getListLessonsQueryOptions(options)
+  const queryOptions = getListLessonsQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
@@ -721,20 +811,29 @@ export function useListLessons<TData = Awaited<ReturnType<typeof listLessons>>, 
 
 
 
-export const getGetLessonUrl = (slug: string,) => {
+export const getGetLessonUrl = (slug: string,
+    params?: GetLessonParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/lessons/${slug}`
+  return stringifiedParams.length > 0 ? `/api/lessons/${slug}?${stringifiedParams}` : `/api/lessons/${slug}`
 }
 
 /**
  * @summary Get a single lesson by slug
  */
-export const getLesson = async (slug: string, options?: RequestInit): Promise<Lesson> => {
+export const getLesson = async (slug: string,
+    params?: GetLessonParams, options?: RequestInit): Promise<Lesson> => {
 
-  return customFetch<Lesson>(getGetLessonUrl(slug),
+  return customFetch<Lesson>(getGetLessonUrl(slug,params),
   {
     ...options,
     method: 'GET'
@@ -747,23 +846,25 @@ export const getLesson = async (slug: string, options?: RequestInit): Promise<Le
 
 
 
-export const getGetLessonQueryKey = (slug: string,) => {
+export const getGetLessonQueryKey = (slug: string,
+    params?: GetLessonParams,) => {
     return [
-    `/api/lessons/${slug}`
+    `/api/lessons/${slug}`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getGetLessonQueryOptions = <TData = Awaited<ReturnType<typeof getLesson>>, TError = ErrorType<OpenaiError>>(slug: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getLesson>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetLessonQueryOptions = <TData = Awaited<ReturnType<typeof getLesson>>, TError = ErrorType<OpenaiError>>(slug: string,
+    params?: GetLessonParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getLesson>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetLessonQueryKey(slug);
+  const queryKey =  queryOptions?.queryKey ?? getGetLessonQueryKey(slug,params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getLesson>>> = ({ signal }) => getLesson(slug, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getLesson>>> = ({ signal }) => getLesson(slug,params, { signal, ...requestOptions });
 
 
 
@@ -781,11 +882,12 @@ export type GetLessonQueryError = ErrorType<OpenaiError>
  */
 
 export function useGetLesson<TData = Awaited<ReturnType<typeof getLesson>>, TError = ErrorType<OpenaiError>>(
- slug: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getLesson>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+ slug: string,
+    params?: GetLessonParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getLesson>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getGetLessonQueryOptions(slug,options)
+  const queryOptions = getGetLessonQueryOptions(slug,params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

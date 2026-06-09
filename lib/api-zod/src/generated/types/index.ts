@@ -7,11 +7,15 @@
  */
 
 export * from './dailyProgress';
+export * from './getLessonParams';
+export * from './getProgressTodayParams';
 export * from './healthStatus';
 export * from './lesson';
 export * from './lessonPhrase';
+export * from './listLessonsParams';
 export * from './openaiConversation';
 export * from './openaiConversationInput';
+export * from './openaiConversationUpdate';
 export * from './openaiConversationWithMessages';
 export * from './openaiError';
 export * from './openaiMessage';

@@ -1,18 +1,23 @@
-import { useListLessons } from "@workspace/api-client-react";
+import { useListLessons, getListLessonsQueryKey } from "@workspace/api-client-react";
 import { Link } from "wouter";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Book } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useLanguage } from "@/hooks/use-language";
 
 export default function LessonsPage() {
-  const { data: lessons, isLoading } = useListLessons();
+  const { code: languageCode, language } = useLanguage();
+  const params = { language: languageCode };
+  const { data: lessons, isLoading } = useListLessons(params, {
+    query: { queryKey: getListLessonsQueryKey(params) },
+  });
 
   return (
     <div className="h-full overflow-y-auto px-4 sm:px-8 py-8 lg:py-12 max-w-5xl mx-auto w-full">
       <div className="mb-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
         <h1 className="text-4xl font-bold tracking-tight text-foreground mb-3">Beginner Lessons</h1>
         <p className="text-xl text-muted-foreground">
-          Master the basics of Urdu with these foundational topics.
+          Master the basics of {language.name} with these foundational topics.
         </p>
       </div>
 

@@ -11,6 +11,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/hooks/use-language";
+import { LanguageSelect } from "@/components/language-select";
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useLocation();
@@ -20,8 +22,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   const [isLessons] = useRoute("/lessons*");
-  const [isChat] = useRoute("/chat/:id");
   const [isHome] = useRoute("/");
+  const { code: languageCode, setCode: setLanguageCode } = useLanguage();
 
   const handleDelete = (e: React.MouseEvent, id: number) => {
     e.preventDefault();
@@ -39,8 +41,20 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const SidebarContent = () => (
     <div className="flex h-full flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border w-64 md:w-72 shadow-sm">
       <div className="p-4 sm:p-6 pb-4">
-        <h1 className="text-2xl font-bold text-primary tracking-tight">Urdu Tutor</h1>
+        <h1 className="text-2xl font-bold text-primary tracking-tight">Lingo Tutor</h1>
         <p className="text-sm text-muted-foreground mt-1 font-medium">Your personal language companion</p>
+      </div>
+
+      <div className="px-4 pb-2">
+        <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+          Learning
+        </label>
+        <LanguageSelect
+          value={languageCode}
+          onChange={setLanguageCode}
+          aria-label="Choose language to learn"
+          className="mt-1.5 w-full"
+        />
       </div>
 
       <div className="px-4 py-2 space-y-2">
@@ -118,7 +132,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             <SidebarContent />
           </SheetContent>
         </Sheet>
-        <div className="ml-2 font-bold text-lg text-primary">Urdu Tutor</div>
+        <div className="ml-2 font-bold text-lg text-primary">Lingo Tutor</div>
       </div>
 
       {/* Desktop Sidebar */}

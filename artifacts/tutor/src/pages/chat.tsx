@@ -3,10 +3,13 @@ import { useRoute, useLocation } from "wouter";
 import { useChat } from "@/hooks/use-chat";
 import { ChatMessage } from "@/components/chat-message";
 import { DailyProgressBar } from "@/components/daily-progress-bar";
+import { LanguageChangeHint } from "@/components/language-change-hint";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { SendHorizontal, Sparkles } from "lucide-react";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { useLanguage } from "@/hooks/use-language";
+import { getLanguage } from "@workspace/languages";
+import { cn } from "@/lib/utils";
 
 export default function ChatPage() {
   const [, params] = useRoute("/chat/:id");
@@ -14,7 +17,14 @@ export default function ChatPage() {
   const isNewChat = !params?.id;
   const conversationId = isNewChat ? undefined : parseInt(params!.id);
 
-  const { messages, isStreaming, sendMessage, isLoading, error } = useChat(conversationId);
+  const { code: activeLanguageCode } = useLanguage();
+  const { messages, isStreaming, sendMessage, isLoading, error, conversationLanguage } =
+    useChat(conversationId, activeLanguageCode);
+  // Existing chats render in their own persisted language; a brand-new chat
+  // uses the active global selection.
+  const effectiveLanguage = getLanguage(
+    isNewChat ? activeLanguageCode : conversationLanguage,
+  );
   const [input, setInput] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -44,7 +54,14 @@ export default function ChatPage() {
 
   return (
     <div className="flex flex-col h-full max-w-4xl mx-auto w-full">
-      <DailyProgressBar />
+      <DailyProgressBar language={effectiveLanguage.code} />
+      {!isNewChat && conversationId !== undefined && conversationLanguage && (
+        <LanguageChangeHint
+          conversationId={conversationId}
+          userMessageCount={messages.filter((m) => m.role === "user").length}
+          currentLanguage={conversationLanguage}
+        />
+      )}
       <div 
         ref={scrollRef}
         className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 scroll-smooth"
@@ -54,15 +71,20 @@ export default function ChatPage() {
             <div className="h-16 w-16 bg-primary/10 text-primary rounded-full flex items-center justify-center mb-2">
               <Sparkles className="h-8 w-8" />
             </div>
-            <h2 className="text-3xl font-bold tracking-tight text-foreground">Aap kaise hain?</h2>
+            <h2
+              className={cn("text-3xl font-bold tracking-tight text-foreground", effectiveLanguage.fontClass)}
+              dir={effectiveLanguage.direction}
+            >
+              {effectiveLanguage.greeting}
+            </h2>
             <p className="text-muted-foreground text-lg">
-              Start a conversation in English. Your tutor will teach you Urdu naturally as you chat. Try saying "Hello" or "Teach me how to order tea".
+              Start a conversation in English. Your tutor will teach you {effectiveLanguage.name} naturally as you chat. Try saying "Hello" or "Teach me how to order food".
             </p>
           </div>
         )}
         
         {messages.map((msg) => (
-          <ChatMessage key={msg.id} message={msg} />
+          <ChatMessage key={msg.id} message={msg} language={effectiveLanguage} />
         ))}
 
         {error && (
