@@ -13,5 +13,7 @@ export interface Lesson {
   description: string;
   /** A short label or icon hint for the lesson topic */
   emoji?: string;
+  /** Expertise level this lesson belongs to (beginner/intermediate/advanced) */
+  level: string;
   phrases: LessonPhrase[];
 }

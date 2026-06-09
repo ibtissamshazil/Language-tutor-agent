@@ -18,7 +18,7 @@ export default function ChatPage() {
   const conversationId = isNewChat ? undefined : parseInt(params!.id);
 
   const { code: activeLanguageCode, level: activeLevel } = useLanguage();
-  const { messages, isStreaming, sendMessage, isLoading, error, conversationLanguage } =
+  const { messages, isStreaming, sendMessage, isLoading, error, conversationLanguage, conversationLevel } =
     useChat(conversationId, activeLanguageCode, activeLevel);
   // Existing chats render in their own persisted language; a brand-new chat
   // uses the active global selection.
@@ -57,9 +57,9 @@ export default function ChatPage() {
       <DailyProgressBar language={effectiveLanguage.code} />
       {!isNewChat && conversationId !== undefined && conversationLanguage && (
         <LanguageChangeHint
-          conversationId={conversationId}
           userMessageCount={messages.filter((m) => m.role === "user").length}
           currentLanguage={conversationLanguage}
+          currentLevel={conversationLevel}
         />
       )}
       <div 

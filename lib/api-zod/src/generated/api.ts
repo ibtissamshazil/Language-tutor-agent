@@ -165,6 +165,7 @@ export const ListLessonsResponseItem = zod.object({
   "title": zod.string(),
   "description": zod.string(),
   "emoji": zod.string().optional().describe('A short label or icon hint for the lesson topic'),
+  "level": zod.string().describe('Expertise level this lesson belongs to (beginner\/intermediate\/advanced)'),
   "phrases": zod.array(zod.object({
   "native": zod.string().describe('The phrase written in the target language\'s native script'),
   "transliteration": zod.string().describe('Roman\/English transliteration (may be empty for Latin scripts)'),
@@ -240,6 +241,7 @@ export const GetLessonResponse = zod.object({
   "title": zod.string(),
   "description": zod.string(),
   "emoji": zod.string().optional().describe('A short label or icon hint for the lesson topic'),
+  "level": zod.string().describe('Expertise level this lesson belongs to (beginner\/intermediate\/advanced)'),
   "phrases": zod.array(zod.object({
   "native": zod.string().describe('The phrase written in the target language\'s native script'),
   "transliteration": zod.string().describe('Roman\/English transliteration (may be empty for Latin scripts)'),
