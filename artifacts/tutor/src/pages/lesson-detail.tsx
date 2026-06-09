@@ -148,7 +148,7 @@ export default function LessonDetailPage() {
                   {phrase.native}
                 </div>
                 {phrase.transliteration && (
-                  <div className="text-lg text-secondary-foreground/80 font-medium italic">
+                  <div className="text-lg text-foreground/70 font-medium italic">
                     "{phrase.transliteration}"
                   </div>
                 )}

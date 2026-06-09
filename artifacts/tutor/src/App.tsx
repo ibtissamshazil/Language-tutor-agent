@@ -7,6 +7,7 @@ import { AppLayout } from "@/components/layout";
 import ChatPage from "@/pages/chat";
 import LessonsPage from "@/pages/lessons";
 import LessonDetailPage from "@/pages/lesson-detail";
+import SettingsPage from "@/pages/settings";
 import { LanguageProvider } from "@/hooks/use-language";
 
 const queryClient = new QueryClient();
@@ -19,6 +20,7 @@ function Router() {
         <Route path="/chat/:id" component={ChatPage} />
         <Route path="/lessons" component={LessonsPage} />
         <Route path="/lessons/:slug" component={LessonDetailPage} />
+        <Route path="/settings" component={SettingsPage} />
         <Route component={NotFound} />
       </Switch>
     </AppLayout>

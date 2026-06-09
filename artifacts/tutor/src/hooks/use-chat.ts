@@ -10,7 +10,11 @@ import {
   OpenaiMessage
 } from "@workspace/api-client-react";
 
-export function useChat(conversationId?: number, newConversationLanguage?: string) {
+export function useChat(
+  conversationId?: number,
+  newConversationLanguage?: string,
+  newConversationLevel?: string,
+) {
   const queryClient = useQueryClient();
   const createConversation = useCreateOpenaiConversation();
   
@@ -68,7 +72,7 @@ export function useChat(conversationId?: number, newConversationLanguage?: strin
         // Create conversation first
         const title = trimmed.slice(0, 30) + (trimmed.length > 30 ? "..." : "");
         const newConv = await createConversation.mutateAsync({
-          data: { title, language: newConversationLanguage },
+          data: { title, language: newConversationLanguage, level: newConversationLevel },
         });
         targetConversationId = newConv.id;
         activeConversationIdRef.current = newConv.id;

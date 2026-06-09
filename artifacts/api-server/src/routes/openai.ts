@@ -8,8 +8,11 @@ import {
 } from "@workspace/api-zod";
 import {
   getLanguage,
+  getLevel,
   isLanguageCode,
+  isLevelCode,
   type LanguageDef,
+  type LevelDef,
 } from "@workspace/languages";
 import { llm, resolveModel, usingOpenRouter } from "../lib/llm";
 import { startOfToday, summarizeProgress } from "../lib/progress";
@@ -19,7 +22,7 @@ const router: IRouter = Router();
 // Build the tutor system prompt for a specific target language. The taught-term
 // markup ([[native|transliteration|english]]) is what the progress scorer and
 // the frontend renderer both rely on, so the instruction to use it is strict.
-function buildSystemPrompt(language: LanguageDef): string {
+function buildSystemPrompt(language: LanguageDef, level: LevelDef): string {
   const { name, promptScriptNote, usesTransliteration, markupExample } = language;
   const translitRule = usesTransliteration
     ? `transliteration = a roman-letter pronunciation (REQUIRED for ${name})`
@@ -27,7 +30,7 @@ function buildSystemPrompt(language: LanguageDef): string {
 
   return `You are a warm, patient and encouraging ${name} language tutor.
 
-The student is a complete beginner who is fluent in English and knows little or no ${name}. Your job is to teach ${name} starting from the very basics (greetings, numbers, everyday words, and simple sentences) and to build the student up gradually. ${name} is ${promptScriptNote}.
+The student is fluent in English and is learning ${name}. Their expertise level is ${level.name}: ${level.promptNote} Adapt the depth, pace and amount of target-language usage to this level. ${name} is ${promptScriptNote}.
 
 Teaching rules:
 - Always explain and converse in ENGLISH. English is the language of explanation; ${name} only appears as the specific words and phrases you are teaching.
@@ -41,6 +44,9 @@ Teaching rules:
 - Use the [[...]] markup EVERY time you present a ${name} term — never write a ${name} word or phrase outside this markup.
 - Do NOT carry on the conversation in ${name}. Outside of the [[...]] markup blocks, everything you write is plain English so a reader who knows only English can follow every part of your reply.
 - Keep responses concise and digestible. Do not dump huge tables; teach a few items at a time and invite the student to practice.
+- Match your response length to the student's request:
+  - SPECIFIC question (e.g. "how do I say 'I need a cup of tea'?", "what's the word for water?"): answer tersely. Give ONLY the requested translation in the [[...]] markup, then 1–2 short natural variations of that SAME phrase. Do NOT pad the reply with unrelated vocabulary, and do NOT repeat words you have already taught earlier in this conversation.
+  - OPEN-ENDED / general request (e.g. "teach me something new", "let's practice greetings"): you may give a fuller mini-lesson with several related items as usual.
 - Gently correct mistakes and praise progress. Be encouraging.
 - When relevant, give a tiny practice prompt or example sentence the student can try.
 - Stay focused on teaching ${name}. If the student goes off-topic, gently steer back.
@@ -56,9 +62,9 @@ Engagement and momentum:
 // injected fresh on every turn so the tutor can react to where they are.
 function progressDirective(points: number, target: number, achieved: boolean): string {
   if (achieved) {
-    return `STUDENT PROGRESS: The student has REACHED today's learning goal (${points}/${target} points). In this reply, warmly congratulate them on hitting today's target, briefly recap what they learned today, and then ASK whether they would like to keep going for more practice now, or rest for the day and come back stronger tomorrow. Make them feel proud of the progress they made today.`;
+    return `STUDENT PROGRESS: The student has REACHED today's learning goal (${points}/${target} words learned). In this reply, warmly congratulate them on hitting today's target, briefly recap what they learned today, and then ASK whether they would like to keep going for more practice now, or rest for the day and come back stronger tomorrow. Make them feel proud of the progress they made today.`;
   }
-  return `STUDENT PROGRESS: Today's goal is ${target} points; the student is at ${points}/${target}. Keep teaching to move them toward the goal, and end your reply by telling them the next concrete thing to learn or practice. Do not mention raw point numbers to the student.`;
+  return `STUDENT PROGRESS: Today's goal is ${target} words; the student has learned ${points}/${target} so far. Keep teaching to move them toward the goal, and end your reply by telling them the next concrete thing to learn or practice. Do not mention raw numbers to the student.`;
 }
 
 // List all conversations
@@ -77,12 +83,14 @@ router.post("/conversations", async (req, res) => {
     res.status(400).json({ error: "Invalid request body" });
     return;
   }
-  // Persist the chosen language (falling back to the default) so the chat keeps
-  // teaching/rendering/scoring in that language even if the global pick changes.
+  // Persist the chosen language and level (falling back to the defaults) so the
+  // chat keeps teaching/rendering/scoring in that language and at that depth
+  // even if the global picks change.
   const language = getLanguage(parsed.data.language).code;
+  const level = getLevel(parsed.data.level).code;
   const [row] = await db
     .insert(conversations)
-    .values({ title: parsed.data.title, language })
+    .values({ title: parsed.data.title, language, level })
     .returning();
   res.status(201).json(row);
 });
@@ -99,7 +107,7 @@ router.patch("/conversations/:id", async (req, res) => {
     res.status(400).json({ error: "Invalid request body" });
     return;
   }
-  const updates: { title?: string; language?: string } = {};
+  const updates: { title?: string; language?: string; level?: string } = {};
   if (parsed.data.title !== undefined) updates.title = parsed.data.title;
   if (parsed.data.language !== undefined) {
     if (!isLanguageCode(parsed.data.language)) {
@@ -107,6 +115,13 @@ router.patch("/conversations/:id", async (req, res) => {
       return;
     }
     updates.language = parsed.data.language;
+  }
+  if (parsed.data.level !== undefined) {
+    if (!isLevelCode(parsed.data.level)) {
+      res.status(400).json({ error: "Unknown level" });
+      return;
+    }
+    updates.level = parsed.data.level;
   }
   if (Object.keys(updates).length === 0) {
     res.status(400).json({ error: "No fields to update" });
@@ -211,6 +226,7 @@ router.post("/conversations/:id/messages", async (req, res) => {
   });
 
   const language = getLanguage(conversation.language);
+  const level = getLevel(conversation.level);
 
   // Build the full conversation history for context
   const history = await db
@@ -236,7 +252,7 @@ router.post("/conversations/:id/messages", async (req, res) => {
   const progress = summarizeProgress(todaysAssistantMessages.map((m) => m.content));
 
   const chatMessages = [
-    { role: "system" as const, content: buildSystemPrompt(language) },
+    { role: "system" as const, content: buildSystemPrompt(language, level) },
     {
       role: "system" as const,
       content: progressDirective(progress.points, progress.target, progress.achieved),

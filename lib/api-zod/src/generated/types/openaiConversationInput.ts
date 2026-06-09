@@ -14,4 +14,6 @@ export interface OpenaiConversationInput {
   title: string;
   /** Language code to study in this conversation */
   language?: string;
+  /** Expertise level to teach this conversation at */
+  level?: string;
 }

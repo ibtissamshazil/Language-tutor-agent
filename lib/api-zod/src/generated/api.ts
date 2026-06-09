@@ -24,6 +24,7 @@ export const ListOpenaiConversationsResponseItem = zod.object({
   "id": zod.number(),
   "title": zod.string(),
   "language": zod.string().describe('Language code the learner is studying in this conversation'),
+  "level": zod.string().describe('Expertise level this conversation is taught at'),
   "createdAt": zod.coerce.date()
 })
 export const ListOpenaiConversationsResponse = zod.array(ListOpenaiConversationsResponseItem)
@@ -38,7 +39,8 @@ export const createOpenaiConversationBodyTitleMax = 200;
 
 export const CreateOpenaiConversationBody = zod.object({
   "title": zod.string().min(1).max(createOpenaiConversationBodyTitleMax),
-  "language": zod.string().optional().describe('Language code to study in this conversation')
+  "language": zod.string().optional().describe('Language code to study in this conversation'),
+  "level": zod.string().optional().describe('Expertise level to teach this conversation at')
 })
 
 
@@ -53,6 +55,7 @@ export const GetOpenaiConversationResponse = zod.object({
   "id": zod.number(),
   "title": zod.string(),
   "language": zod.string().describe('Language code the learner is studying in this conversation'),
+  "level": zod.string().describe('Expertise level this conversation is taught at'),
   "createdAt": zod.coerce.date(),
   "messages": zod.array(zod.object({
   "id": zod.number(),
@@ -77,13 +80,15 @@ export const updateOpenaiConversationBodyTitleMax = 200;
 
 export const UpdateOpenaiConversationBody = zod.object({
   "title": zod.string().min(1).max(updateOpenaiConversationBodyTitleMax).optional(),
-  "language": zod.string().optional().describe('New language code for this conversation')
+  "language": zod.string().optional().describe('New language code for this conversation'),
+  "level": zod.string().optional().describe('New expertise level for this conversation')
 })
 
 export const UpdateOpenaiConversationResponse = zod.object({
   "id": zod.number(),
   "title": zod.string(),
   "language": zod.string().describe('Language code the learner is studying in this conversation'),
+  "level": zod.string().describe('Expertise level this conversation is taught at'),
   "createdAt": zod.coerce.date()
 })
 
@@ -142,7 +147,7 @@ export const GetProgressTodayResponse = zod.object({
   "target": zod.number().describe('Points needed to reach today\'s goal'),
   "percent": zod.number().describe('Progress toward the goal as a percentage (0-100)'),
   "achieved": zod.boolean().describe('Whether today\'s goal has been reached'),
-  "phrasesLearned": zod.number().describe('Number of target-language words\/phrases taught today'),
+  "wordsLearned": zod.number().describe('Number of target-language words taught today (the daily goal unit)'),
   "language": zod.string().describe('Language code this progress is scoped to')
 })
 

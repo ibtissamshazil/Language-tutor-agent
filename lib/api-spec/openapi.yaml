@@ -333,6 +333,9 @@ components:
         language:
           type: string
           description: Language code the learner is studying in this conversation
+        level:
+          type: string
+          description: Expertise level this conversation is taught at
         createdAt:
           type: string
           format: date-time
@@ -340,6 +343,7 @@ components:
         - id
         - title
         - language
+        - level
         - createdAt
     OpenaiMessage:
       type: object
@@ -371,6 +375,9 @@ components:
         language:
           type: string
           description: Language code to study in this conversation
+        level:
+          type: string
+          description: Expertise level to teach this conversation at
       required:
         - title
     OpenaiConversationUpdate:
@@ -383,6 +390,9 @@ components:
         language:
           type: string
           description: New language code for this conversation
+        level:
+          type: string
+          description: New expertise level for this conversation
     OpenaiMessageInput:
       type: object
       properties:
@@ -402,6 +412,9 @@ components:
         language:
           type: string
           description: Language code the learner is studying in this conversation
+        level:
+          type: string
+          description: Expertise level this conversation is taught at
         createdAt:
           type: string
           format: date-time
@@ -413,6 +426,7 @@ components:
         - id
         - title
         - language
+        - level
         - createdAt
         - messages
     OpenaiError:
@@ -437,9 +451,9 @@ components:
         achieved:
           type: boolean
           description: Whether today's goal has been reached
-        phrasesLearned:
+        wordsLearned:
           type: integer
-          description: Number of target-language words/phrases taught today
+          description: Number of target-language words taught today (the daily goal unit)
         language:
           type: string
           description: Language code this progress is scoped to
@@ -448,7 +462,7 @@ components:
         - target
         - percent
         - achieved
-        - phrasesLearned
+        - wordsLearned
         - language
     LessonPhrase:
       type: object

@@ -17,9 +17,9 @@ export default function ChatPage() {
   const isNewChat = !params?.id;
   const conversationId = isNewChat ? undefined : parseInt(params!.id);
 
-  const { code: activeLanguageCode } = useLanguage();
+  const { code: activeLanguageCode, level: activeLevel } = useLanguage();
   const { messages, isStreaming, sendMessage, isLoading, error, conversationLanguage } =
-    useChat(conversationId, activeLanguageCode);
+    useChat(conversationId, activeLanguageCode, activeLevel);
   // Existing chats render in their own persisted language; a brand-new chat
   // uses the active global selection.
   const effectiveLanguage = getLanguage(

@@ -12,6 +12,8 @@ export interface OpenaiConversationWithMessages {
   title: string;
   /** Language code the learner is studying in this conversation */
   language: string;
+  /** Expertise level this conversation is taught at */
+  level: string;
   createdAt: Date;
   messages: OpenaiMessage[];
 }
