@@ -2,8 +2,8 @@ import { useState, useRef, useEffect } from "react";
 import { useRoute, useLocation } from "wouter";
 import { useChat } from "@/hooks/use-chat";
 import { ChatMessage } from "@/components/chat-message";
-import { DailyProgressBar } from "@/components/daily-progress-bar";
 import { LanguageChangeHint } from "@/components/language-change-hint";
+import { useGoalCelebration } from "@/hooks/use-goal-celebration";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { SendHorizontal, Sparkles } from "lucide-react";
@@ -27,6 +27,9 @@ export default function ChatPage() {
   );
   const [input, setInput] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Fire confetti + an auto-dismissing toast the moment today's goal is reached.
+  useGoalCelebration(effectiveLanguage.code);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -54,7 +57,6 @@ export default function ChatPage() {
 
   return (
     <div className="flex flex-col h-full max-w-4xl mx-auto w-full">
-      <DailyProgressBar language={effectiveLanguage.code} />
       {!isNewChat && conversationId !== undefined && conversationLanguage && (
         <LanguageChangeHint
           userMessageCount={messages.filter((m) => m.role === "user").length}
