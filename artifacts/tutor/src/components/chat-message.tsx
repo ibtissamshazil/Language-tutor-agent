@@ -1,5 +1,5 @@
 import { OpenaiMessage } from "@workspace/api-client-react";
-import { parseTaughtTerms, type LanguageDef } from "@workspace/languages";
+import { parseContentSegments, type LanguageDef } from "@workspace/languages";
 import { cn } from "@/lib/utils";
 import { Avatar } from "@/components/ui/avatar";
 import { User, Sparkles } from "lucide-react";
@@ -13,53 +13,69 @@ export function ChatMessage({
 }) {
   const isUser = message.role === "user";
 
-  // Render the assistant's reply, turning each [[native|translit|english]]
-  // taught-term markup block into a styled vocabulary chip in the target
-  // language's font and direction. Everything outside the markup is plain text.
+  // Render the assistant's reply. Each [[native|translit|english]] taught-term
+  // block becomes an inline vocabulary chip, while each {{native|translit|english}}
+  // example-sentence block becomes a three-line stacked card (native /
+  // transliteration / English). Everything else is plain text. Both the native
+  // chip text and the sentence's native line use the target language's font and
+  // direction.
   const renderContent = (text: string) => {
-    const terms = parseTaughtTerms(text);
-    if (terms.length === 0) return text;
+    const segments = parseContentSegments(text);
+    if (segments.length === 0) return text;
 
-    const parts: React.ReactNode[] = [];
-    let lastIndex = 0;
+    return segments.map((segment, i) => {
+      if (segment.type === "text") {
+        return <span key={`text-${i}`}>{segment.value}</span>;
+      }
 
-    terms.forEach((term, i) => {
-      if (term.index > lastIndex) {
-        parts.push(
-          <span key={`text-${lastIndex}`}>{text.slice(lastIndex, term.index)}</span>,
+      if (segment.type === "term") {
+        const { term } = segment;
+        return (
+          <span
+            key={`term-${i}`}
+            className="inline-flex flex-wrap items-baseline gap-x-2 gap-y-0.5 align-baseline mx-0.5 rounded-md bg-primary/10 px-2 py-0.5"
+          >
+            <span
+              className={cn("text-lg leading-snug text-primary", language.fontClass)}
+              dir={language.direction}
+            >
+              {term.native}
+            </span>
+            {term.transliteration && (
+              <span className="text-sm italic text-foreground/70">
+                {term.transliteration}
+              </span>
+            )}
+            {term.english && (
+              <span className="text-sm text-muted-foreground">— {term.english}</span>
+            )}
+          </span>
         );
       }
 
-      parts.push(
+      const { sentence } = segment;
+      return (
         <span
-          key={`term-${i}`}
-          className="inline-flex flex-wrap items-baseline gap-x-2 gap-y-0.5 align-baseline mx-0.5 rounded-md bg-primary/10 px-2 py-0.5"
+          key={`sentence-${i}`}
+          className="my-2 flex flex-col gap-1 rounded-xl border border-primary/15 bg-primary/5 px-4 py-3"
         >
           <span
             className={cn("text-lg leading-snug text-primary", language.fontClass)}
             dir={language.direction}
           >
-            {term.native}
+            {sentence.native}
           </span>
-          {term.transliteration && (
+          {sentence.transliteration && (
             <span className="text-sm italic text-foreground/70">
-              {term.transliteration}
+              {sentence.transliteration}
             </span>
           )}
-          {term.english && (
-            <span className="text-sm text-muted-foreground">— {term.english}</span>
+          {sentence.english && (
+            <span className="text-sm text-muted-foreground">{sentence.english}</span>
           )}
-        </span>,
+        </span>
       );
-
-      lastIndex = term.index + term.raw.length;
     });
-
-    if (lastIndex < text.length) {
-      parts.push(<span key={`text-${lastIndex}`}>{text.slice(lastIndex)}</span>);
-    }
-
-    return parts;
   };
 
   return (

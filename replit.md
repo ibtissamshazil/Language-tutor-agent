@@ -29,12 +29,14 @@ An AI-powered language tutor web app: a chat interface where an LLM teaches a ta
 - `@workspace/languages` (`lib/languages/src/`) is the ONE place that defines what the tutor can teach. Both the API server (prompt building, model selection, progress scoring) and the frontend (language picker, script rendering, lessons) import from it so the two sides can never drift apart.
 - `registry.ts` exports `LANGUAGES: LanguageDef[]` and helpers. Each `LanguageDef` carries: `code` (stable, persisted on conversations, e.g. `es`/`ur`/`zh`), `name`, `nativeName`, `direction` (`ltr`/`rtl`), `fontClass` (Tailwind font utility for the native script, `""` = default Latin), `usesTransliteration`, `greeting` (chat empty-state), `promptScriptNote` + `markupExample` (injected into the prompt), and an optional per-language `model.openRouter` override.
 - `levels.ts` is the matching single source of truth for the learner's **expertise level** (Beginner / Intermediate / Advanced). It exports `LEVELS: LevelDef[]` (`code`, `name`, `description` for the UI, `promptNote` for the tutor prompt) and helpers (`getLevel`, `isLevelCode`, `DEFAULT_LEVEL_CODE`). The level is persisted per-conversation (like language) and drives how much the tutor scaffolds.
-- `markup.ts` is the universal taught-term format: `parseTaughtTerms(text)` and `countLearnings(text)`. There is NO unicode/script regex anymore — taught vocabulary is recognized purely by the markup below.
+- `markup.ts` is the universal taught-term format: `parseTaughtTerms(text)`, `parseSentenceBlocks(text)`, the unified `parseContentSegments(text)` tokenizer, and `countLearnings(text)`. There is NO unicode/script regex anymore — taught vocabulary is recognized purely by the markup below.
 
 ## Taught-term markup (the core convention)
 
-- The tutor wraps every taught term as `[[native|transliteration|english]]`. Transliteration is empty for Latin-script languages, e.g. `[[hola||hello]]`; non-Latin example `[[نمستے|namaste|hello]]`.
-- This single markup drives BOTH the frontend rendering (chips in `chat-message.tsx`, via `parseTaughtTerms`) AND server progress scoring (`countLearnings`). Both call into `@workspace/languages` — never reimplement parsing on either side.
+- The tutor wraps every taught term as `[[native|transliteration|english]]`. Transliteration is empty for Latin-script languages, e.g. `[[hola||hello]]`; non-Latin example `[[نمستے|namaste|hello]]`. These render as inline vocabulary chips.
+- The tutor ALSO writes one full example SENTENCE per teaching reply using a SEPARATE block `{{native|transliteration|english}}` (different delimiter so it never collides with `[[...]]`). It renders as a three-line stacked card (native / transliteration / English) in `chat-message.tsx`. Sentence blocks are NOT counted by the progress scorer — they only recombine already-taught words, so `countLearnings`/`parseTaughtTerms` stay on `[[...]]` only (no double-counting).
+- The renderer (`chat-message.tsx`) walks `parseContentSegments` which interleaves text + `[[...]]` chips + `{{...}}` sentence cards in order. The prompt forbids markdown tables / stray pipe (`|`) characters outside the two block types (the `|` is reserved for inside `[[...]]`/`{{...}}`), since raw pipes from markdown tables would otherwise leak into the UI.
+- This single markup drives BOTH the frontend rendering (chips/sentence cards in `chat-message.tsx`) AND server progress scoring (`countLearnings`). Both call into `@workspace/languages` — never reimplement parsing on either side.
 
 ## Where things live
 
