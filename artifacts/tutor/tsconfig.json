@@ -18,6 +18,9 @@
   },
   "references": [
     {
+      "path": "../../lib/languages"
+    },
+    {
       "path": "../../lib/api-client-react"
     },
     {

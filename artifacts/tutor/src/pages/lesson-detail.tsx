@@ -3,13 +3,17 @@ import { useRoute, Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, MessageSquarePlus } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useLanguage } from "@/hooks/use-language";
+import { cn } from "@/lib/utils";
 
 export default function LessonDetailPage() {
   const [, params] = useRoute("/lessons/:slug");
   const slug = params?.slug || "";
-  
-  const { data: lesson, isLoading } = useGetLesson(slug, {
-    query: { enabled: !!slug, queryKey: getGetLessonQueryKey(slug) }
+  const { code: languageCode, language } = useLanguage();
+
+  const queryParams = { language: languageCode };
+  const { data: lesson, isLoading } = useGetLesson(slug, queryParams, {
+    query: { enabled: !!slug, queryKey: getGetLessonQueryKey(slug, queryParams) }
   });
 
   if (isLoading) {
@@ -78,14 +82,22 @@ export default function LessonDetailPage() {
               
               <div className="h-px w-full md:w-px md:h-16 bg-border" />
               
-              <div className="space-y-4 flex-1 w-full text-left md:text-right">
-                <div className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Urdu</div>
-                <div className="text-3xl sm:text-4xl font-urdu text-primary" dir="rtl">
-                  {phrase.urdu}
+              <div className={cn(
+                "space-y-4 flex-1 w-full",
+                language.direction === "rtl" ? "text-left md:text-right" : "text-left",
+              )}>
+                <div className="text-sm font-bold uppercase tracking-wider text-muted-foreground">{language.name}</div>
+                <div
+                  className={cn("text-3xl sm:text-4xl text-primary", language.fontClass)}
+                  dir={language.direction}
+                >
+                  {phrase.native}
                 </div>
-                <div className="text-lg text-secondary-foreground/80 font-medium italic">
-                  "{phrase.transliteration}"
-                </div>
+                {phrase.transliteration && (
+                  <div className="text-lg text-secondary-foreground/80 font-medium italic">
+                    "{phrase.transliteration}"
+                  </div>
+                )}
               </div>
             </div>
           ))}

@@ -1,6 +1,6 @@
-# Urdu Tutor
+# Lingo Tutor
 
-An AI-powered language tutor web app: a chat interface where an LLM teaches Urdu to English speakers, mixing both languages so learners pick up the right words in context. Includes browsable beginner lessons (greetings, numbers, common phrases) with Urdu script, transliteration, and English meaning.
+An AI-powered language tutor web app: a chat interface where an LLM teaches a target language to English speakers, mixing both languages so learners pick up the right words in context. Supports 10 languages (Spanish, French, German, Italian, Portuguese, Mandarin Chinese, Japanese, Hindi, Arabic, Urdu). Includes browsable beginner lessons (greetings, numbers, common phrases) with native script, transliteration, and English meaning.
 
 ## Run & Operate
 
@@ -11,47 +11,61 @@ An AI-powered language tutor web app: a chat interface where an LLM teaches Urdu
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
 - Required env: `DATABASE_URL` — Postgres connection string
-- LLM (free, preferred): `OPENROUTER_API_KEY` — your own free key from https://openrouter.ai/keys. Optional `OPENROUTER_MODEL` to override the default free model.
+- LLM (free, preferred): `OPENROUTER_API_KEY` — your own free key from https://openrouter.ai/keys. Optional `OPENROUTER_MODEL` to override the per-language default free model.
 - LLM (fallback, paid): `AI_INTEGRATIONS_OPENAI_BASE_URL`, `AI_INTEGRATIONS_OPENAI_API_KEY` — used only when `OPENROUTER_API_KEY` is not set (requires a paid Replit plan).
 
 ## Stack
 
 - pnpm workspaces, Node.js 24, TypeScript 5.9
 - API: Express 5
-- Frontend: React + Vite, wouter (routing), TanStack Query, Tailtwind + tw-animate-css
+- Frontend: React + Vite, wouter (routing), TanStack Query, Tailwind + tw-animate-css
 - DB: PostgreSQL + Drizzle ORM
 - LLM: OpenRouter (free models) called directly with the user's own `OPENROUTER_API_KEY`; falls back to OpenAI via Replit AI Integrations proxy if no OpenRouter key is set
 - Validation: Zod (`zod/v4`), `drizzle-zod`
 - API codegen: Orval (from OpenAPI spec)
 
+## The language registry — single source of truth
+
+- `@workspace/languages` (`lib/languages/src/`) is the ONE place that defines what the tutor can teach. Both the API server (prompt building, model selection, progress scoring) and the frontend (language picker, script rendering, lessons) import from it so the two sides can never drift apart.
+- `registry.ts` exports `LANGUAGES: LanguageDef[]` and helpers. Each `LanguageDef` carries: `code` (stable, persisted on conversations, e.g. `es`/`ur`/`zh`), `name`, `nativeName`, `direction` (`ltr`/`rtl`), `fontClass` (Tailwind font utility for the native script, `""` = default Latin), `usesTransliteration`, `greeting` (chat empty-state), `promptScriptNote` + `markupExample` (injected into the prompt), and an optional per-language `model.openRouter` override.
+- `markup.ts` is the universal taught-term format: `parseTaughtTerms(text)` and `countLearnings(text)`. There is NO unicode/script regex anymore — taught vocabulary is recognized purely by the markup below.
+
+## Taught-term markup (the core convention)
+
+- The tutor wraps every taught term as `[[native|transliteration|english]]`. Transliteration is empty for Latin-script languages, e.g. `[[hola||hello]]`; non-Latin example `[[نمستے|namaste|hello]]`.
+- This single markup drives BOTH the frontend rendering (chips in `chat-message.tsx`, via `parseTaughtTerms`) AND server progress scoring (`countLearnings`). Both call into `@workspace/languages` — never reimplement parsing on either side.
+
 ## Where things live
 
+- Language registry + markup: `@workspace/languages` (`lib/languages/src/registry.ts`, `markup.ts`)
 - API contract source of truth: `lib/api-spec/openapi.yaml` — run codegen after editing
 - Generated React Query hooks: `@workspace/api-client-react` (import from here, never relative paths)
 - Generated Zod schemas: `@workspace/api-zod`
-- DB schema: `lib/db/src/schema/` (`conversations.ts`, `messages.ts`)
+- DB schema: `lib/db/src/schema/` (`conversations.ts` — has `language` column, `messages.ts`)
 - OpenAI server SDK wrapper: `@workspace/integrations-openai-ai-server` (exports `openai` client)
-- Backend routes: `artifacts/api-server/src/routes/` — `openai.ts` (chat), `lessons.ts` (static lesson content)
-- Frontend: `artifacts/tutor/src/` — `pages/` (chat, lessons, lesson-detail), `components/`
+- Backend routes: `artifacts/api-server/src/routes/` — `openai.ts` (chat + conversation CRUD incl. PATCH language), `lessons.ts` (static lesson content, language-filtered), `progress.ts`
+- Backend libs: `artifacts/api-server/src/lib/` — `llm.ts` (provider + per-language model), `progress.ts` (scoring), `lessons-data.ts` (`LESSONS_BY_LANGUAGE`)
+- Frontend: `artifacts/tutor/src/` — `pages/` (chat, lessons, lesson-detail), `components/`, `hooks/use-language.tsx` (LanguageProvider), `hooks/use-chat.ts`
 - SSE stream parser (frontend): `artifacts/tutor/src/lib/sse.ts`
 
 ## Architecture decisions
 
 - Chat replies stream via Server-Sent Events from `POST /api/openai/conversations/{id}/messages`. Orval cannot type SSE, so this endpoint has NO generated hook — the frontend POSTs with `fetch` and parses the stream manually. All other endpoints use generated hooks.
-- Conversations and messages are persisted in Postgres; full message history is replayed to the LLM as context on each turn (with the tutor system prompt prepended).
-- Lessons are static content served from `lessons.ts` (no DB table) — simple seed data, no admin/CRUD.
-- The tutor system prompt ("Ustaad") enforces the teaching style: mix English + Urdu, always give Urdu script + transliteration + English meaning together.
-- Urdu script renders with the `Noto Nastaliq Urdu` font (Google Fonts) and `dir="rtl"`. The chat message component auto-detects Arabic/Urdu unicode ranges and styles those spans larger.
+- Conversations and messages are persisted in Postgres; full message history is replayed to the LLM as context on each turn (with the tutor system prompt prepended). Each conversation stores its target `language`; the chat handler builds the prompt and selects the model from that language.
+- Per-conversation language: set at creation (`POST /conversations` accepts `language`) and changeable via `PATCH /conversations/:id`. The frontend's active/default language is held in `LanguageProvider` (localStorage); the in-chat language-change hint patches an existing conversation.
+- Lessons are static content served from `lessons-data.ts` (no DB table) — `LESSONS_BY_LANGUAGE` keyed by language code, generic `native`/`transliteration`/`english` phrase fields. The `lessons.ts` route filters by the `language` query param.
+- The tutor system prompt is built per-language by `buildSystemPrompt(language)` in `openai.ts`: it enforces the teaching style (mix English + target language) and the `[[native|translit|english]]` markup, injecting the language's `promptScriptNote` and `markupExample`.
+- Native script renders with per-language fonts and direction from the registry: `chat-message.tsx` and `lesson-detail.tsx` apply `language.fontClass` + `dir={language.direction}`. Fonts (Noto Nastaliq Urdu, Noto Sans Arabic/SC/JP/Devanagari) are loaded in `index.css` and exposed as `--font-*` theme tokens mirrored by the registry `fontClass` values.
 
 ## Product
 
-- Chat tutor at `/` (and `/chat/:id`): start/continue/delete conversations, streaming bilingual replies. A top progress bar shows progress toward today's learning goal; the tutor proactively tells the student what to learn next and, once the daily goal is reached, congratulates them and offers to continue or rest till tomorrow.
-- Lessons browser at `/lessons` and `/lessons/:slug`: beginner topics with phrases, plus a "Practice in Chat" jump-off.
+- Chat tutor at `/` (and `/chat/:id`): pick a language in the sidebar, start/continue/delete conversations, streaming bilingual replies. A top progress bar shows progress toward today's per-language learning goal; the tutor proactively tells the student what to learn next and, once the daily goal is reached, congratulates them and offers to continue or rest till tomorrow. After a couple of messages, a dismissible hint lets the learner change the current conversation's language.
+- Lessons browser at `/lessons` and `/lessons/:slug`: beginner topics for the active language, plus a "Practice in Chat" jump-off.
 
 ## Daily progress
 
-- Progress is derived (not stored) from Urdu taught in today's `assistant` messages. Scoring lives in `artifacts/api-server/src/lib/progress.ts` (points = Urdu word count per phrase; tune `DAILY_TARGET` there). `GET /api/progress/today` returns the daily summary; the chat handler injects a per-turn progress directive into the LLM so it reacts to how close the student is to the goal.
-- The progress scorer uses the SAME Urdu unicode regex as the frontend renderer (`chat-message.tsx`) — keep them in sync.
+- Progress is derived (not stored) from taught terms in today's `assistant` messages, scoped to a single language (join on `conversations.language`). Scoring lives in `artifacts/api-server/src/lib/progress.ts` and counts via `countLearnings` from `@workspace/languages` (min 1 point per taught term; tune `DAILY_TARGET` there). `GET /api/progress/today?language=<code>` returns the daily summary; the chat handler injects a per-turn progress directive into the LLM so it reacts to how close the student is to the goal.
+- Scoring and frontend rendering BOTH go through the markup parser in `@workspace/languages` — keep all taught-term recognition there, never a side-specific regex.
 
 ## User preferences
 
@@ -61,10 +75,11 @@ An AI-powered language tutor web app: a chat interface where an LLM teaches Urdu
 
 - `tw-animate-css` `animate-in` does NOT apply `fill-mode: forwards` by default. Do NOT pair `animate-in fade-in` with a static `opacity-0` class — the element reverts to (or starts) invisible. Use `animate-in fade-in` alone, or set `animationFillMode: "both"` inline.
 - Restart the `artifacts/api-server` workflow after adding/mounting new routes — the dev workflow builds once on start.
-- LLM provider/model is resolved in `artifacts/api-server/src/lib/llm.ts`. OpenRouter free models use `max_tokens`; the Replit `gpt-5.4` fallback needs `max_completion_tokens` — the chat route branches on `usingOpenRouter`.
-- OpenRouter free model slugs (the `:free` ones) come and go and get rate-limited (HTTP 429) per upstream provider. If chat returns "Failed to generate a reply", check the api-server log for the OpenRouter error, then probe `GET https://openrouter.ai/api/v1/models` (filter pricing prompt+completion == 0) and set `OPENROUTER_MODEL` to a working one. Default is `openai/gpt-oss-120b:free`.
+- LLM provider/model is resolved in `artifacts/api-server/src/lib/llm.ts` via `resolveModel(language)`. OpenRouter free models use `max_tokens`; the Replit `gpt-5.4` fallback needs `max_completion_tokens` — the chat route branches on `usingOpenRouter`. Model precedence on OpenRouter: global `OPENROUTER_MODEL` env override → the language's `model.openRouter` → shared default. Harder non-Latin scripts default to a stronger free model, Latin scripts to a lighter one.
+- OpenRouter free model slugs (the `:free` ones) come and go and get rate-limited (HTTP 429) per upstream provider. If chat returns "Failed to generate a reply", check the api-server log for the OpenRouter error, then probe `GET https://openrouter.ai/api/v1/models` (filter pricing prompt+completion == 0) and set `OPENROUTER_MODEL` to a working one.
 - Do not change the OpenAPI `info.title` — it controls generated filenames.
 - Never use `console.log` in server code — use `req.log` in handlers, `logger` elsewhere.
+- Adding a language is ideally just a new entry in `LANGUAGES` (registry) plus a `LESSONS_BY_LANGUAGE` block and, for a non-Latin script, a font in `index.css` + matching `--font-*` token. No prompt/scoring/render code should need touching.
 
 ## Pointers
 

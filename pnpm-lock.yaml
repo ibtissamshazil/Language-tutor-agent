@@ -175,6 +175,9 @@ importers:
       '@workspace/integrations-openai-ai-server':
         specifier: workspace:*
         version: link:../../lib/integrations-openai-ai-server
+      '@workspace/languages':
+        specifier: workspace:*
+        version: link:../../lib/languages
       cookie-parser:
         specifier: ^1.4.7
         version: 1.4.7
@@ -527,6 +530,9 @@ importers:
       '@workspace/integrations-openai-ai-react':
         specifier: workspace:*
         version: link:../../lib/integrations-openai-ai-react
+      '@workspace/languages':
+        specifier: workspace:*
+        version: link:../../lib/languages
       class-variance-authority:
         specifier: 'catalog:'
         version: 0.7.1
@@ -667,6 +673,8 @@ importers:
       '@types/node':
         specifier: 'catalog:'
         version: 25.6.2
+
+  lib/languages: {}
 
   scripts:
     devDependencies:

@@ -4,34 +4,53 @@ import { db, conversations, messages } from "@workspace/db";
 import {
   CreateOpenaiConversationBody,
   SendOpenaiMessageBody,
+  UpdateOpenaiConversationBody,
 } from "@workspace/api-zod";
-import { llm, LLM_MODEL, usingOpenRouter } from "../lib/llm";
+import {
+  getLanguage,
+  isLanguageCode,
+  type LanguageDef,
+} from "@workspace/languages";
+import { llm, resolveModel, usingOpenRouter } from "../lib/llm";
 import { startOfToday, summarizeProgress } from "../lib/progress";
 
 const router: IRouter = Router();
 
-const SYSTEM_PROMPT = `You are "Ustaad", a warm, patient and encouraging Urdu language tutor.
+// Build the tutor system prompt for a specific target language. The taught-term
+// markup ([[native|transliteration|english]]) is what the progress scorer and
+// the frontend renderer both rely on, so the instruction to use it is strict.
+function buildSystemPrompt(language: LanguageDef): string {
+  const { name, promptScriptNote, usesTransliteration, markupExample } = language;
+  const translitRule = usesTransliteration
+    ? `transliteration = a roman-letter pronunciation (REQUIRED for ${name})`
+    : `transliteration = leave this field EMPTY for ${name} (it uses the Latin alphabet, so no transliteration is needed)`;
 
-The student is a complete beginner who is fluent in English and knows little or no Urdu. Your job is to teach Urdu starting from the very basics (the alphabet, greetings, numbers, everyday words, and simple sentences) and to build the student up gradually.
+  return `You are a warm, patient and encouraging ${name} language tutor.
+
+The student is a complete beginner who is fluent in English and knows little or no ${name}. Your job is to teach ${name} starting from the very basics (greetings, numbers, everyday words, and simple sentences) and to build the student up gradually. ${name} is ${promptScriptNote}.
 
 Teaching rules:
-- Always explain and converse in ENGLISH. English is the language of explanation; Urdu only appears as the specific words and phrases you are teaching.
-- Whenever you give an Urdu word or phrase, you MUST present it in THREE forms together so the student can learn it correctly:
-  1. Urdu script (e.g. سلام)
-  2. Roman transliteration in parentheses (e.g. "salaam")
-  3. The English meaning (e.g. "= peace / hello")
-- NEVER write a sentence or carry on the conversation in Roman (transliterated) Urdu on its own. Roman transliteration is ONLY ever allowed inside the parentheses that accompany Urdu script and an English meaning. A reader who knows only English must be able to understand every part of your reply.
-- Do not reply in Urdu-only or Roman-Urdu-only. Outside of the three-form word/phrase blocks, everything you write is plain English.
+- Always explain and converse in ENGLISH. English is the language of explanation; ${name} only appears as the specific words and phrases you are teaching.
+- Whenever you teach a ${name} word or phrase, you MUST wrap it in this EXACT machine-readable markup so the app can display and track it:
+  [[native|transliteration|english]]
+  where:
+  - native = the word or phrase written in ${name} (${promptScriptNote})
+  - ${translitRule}
+  - english = the English meaning
+  The three fields are separated by single pipe (|) characters. A field must NOT itself contain a "|" or a "]" character. Example: ${markupExample}
+- Use the [[...]] markup EVERY time you present a ${name} term — never write a ${name} word or phrase outside this markup.
+- Do NOT carry on the conversation in ${name}. Outside of the [[...]] markup blocks, everything you write is plain English so a reader who knows only English can follow every part of your reply.
 - Keep responses concise and digestible. Do not dump huge tables; teach a few items at a time and invite the student to practice.
 - Gently correct mistakes and praise progress. Be encouraging.
 - When relevant, give a tiny practice prompt or example sentence the student can try.
-- Stay focused on teaching Urdu. If the student goes off-topic, gently steer back.
+- Stay focused on teaching ${name}. If the student goes off-topic, gently steer back.
 - Do not use emojis.
 
 Engagement and momentum:
 - ALWAYS end every reply by TELLING the student what to learn or practice next based on what they have studied so far in this conversation. Do NOT ask "what would you like to learn next?" — decide for them and lead the way (e.g. "Next, let's build on this and learn how to say...", "Now keep practicing by trying...").
 - Keep the student in flow toward today's learning goal. Make the next step feel small, concrete and worth doing right now so they want to keep going.
 - Build progressively on their history: reinforce earlier words while introducing slightly more each turn.`;
+}
 
 // A dynamic system message describing the student's progress toward today's goal,
 // injected fresh on every turn so the tutor can react to where they are.
@@ -58,11 +77,51 @@ router.post("/conversations", async (req, res) => {
     res.status(400).json({ error: "Invalid request body" });
     return;
   }
+  // Persist the chosen language (falling back to the default) so the chat keeps
+  // teaching/rendering/scoring in that language even if the global pick changes.
+  const language = getLanguage(parsed.data.language).code;
   const [row] = await db
     .insert(conversations)
-    .values({ title: parsed.data.title })
+    .values({ title: parsed.data.title, language })
     .returning();
   res.status(201).json(row);
+});
+
+// Update a conversation (e.g. change its language or rename it)
+router.patch("/conversations/:id", async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) {
+    res.status(400).json({ error: "Invalid conversation id" });
+    return;
+  }
+  const parsed = UpdateOpenaiConversationBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid request body" });
+    return;
+  }
+  const updates: { title?: string; language?: string } = {};
+  if (parsed.data.title !== undefined) updates.title = parsed.data.title;
+  if (parsed.data.language !== undefined) {
+    if (!isLanguageCode(parsed.data.language)) {
+      res.status(400).json({ error: "Unknown language" });
+      return;
+    }
+    updates.language = parsed.data.language;
+  }
+  if (Object.keys(updates).length === 0) {
+    res.status(400).json({ error: "No fields to update" });
+    return;
+  }
+  const [row] = await db
+    .update(conversations)
+    .set(updates)
+    .where(eq(conversations.id, id))
+    .returning();
+  if (!row) {
+    res.status(404).json({ error: "Conversation not found" });
+    return;
+  }
+  res.json(row);
 });
 
 // Get a conversation with its messages
@@ -151,6 +210,8 @@ router.post("/conversations/:id/messages", async (req, res) => {
     content: parsed.data.content,
   });
 
+  const language = getLanguage(conversation.language);
+
   // Build the full conversation history for context
   const history = await db
     .select()
@@ -158,18 +219,24 @@ router.post("/conversations/:id/messages", async (req, res) => {
     .where(eq(messages.conversationId, id))
     .orderBy(asc(messages.createdAt));
 
-  // Compute today's learning progress so the tutor can react to how close the
-  // student is to today's goal.
+  // Compute today's learning progress IN THIS LANGUAGE so the tutor can react to
+  // how close the student is to today's goal. Scope to assistant messages from
+  // conversations in the same language.
   const todaysAssistantMessages = await db
     .select({ content: messages.content })
     .from(messages)
+    .innerJoin(conversations, eq(messages.conversationId, conversations.id))
     .where(
-      and(eq(messages.role, "assistant"), gte(messages.createdAt, startOfToday())),
+      and(
+        eq(messages.role, "assistant"),
+        gte(messages.createdAt, startOfToday()),
+        eq(conversations.language, language.code),
+      ),
     );
   const progress = summarizeProgress(todaysAssistantMessages.map((m) => m.content));
 
   const chatMessages = [
-    { role: "system" as const, content: SYSTEM_PROMPT },
+    { role: "system" as const, content: buildSystemPrompt(language) },
     {
       role: "system" as const,
       content: progressDirective(progress.points, progress.target, progress.achieved),
@@ -199,7 +266,7 @@ router.post("/conversations/:id/messages", async (req, res) => {
   try {
     const stream = await llm.chat.completions.create(
       {
-        model: LLM_MODEL,
+        model: resolveModel(language),
         // gpt-5.4 (Replit proxy) needs max_completion_tokens; OpenRouter free
         // models use the standard max_tokens.
         ...(usingOpenRouter

@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;700&family=Noto+Naskh+Arabic:wght@400;700&family=Noto+Sans+SC:wght@400;500;700&family=Noto+Sans+JP:wght@400;500;700&family=Noto+Sans+Devanagari:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
 
 @import "tailwindcss";
 @import "tw-animate-css";
@@ -54,6 +54,10 @@
 
   --font-sans: 'Plus Jakarta Sans', sans-serif;
   --font-urdu: 'Noto Nastaliq Urdu', serif;
+  --font-arabic: 'Noto Naskh Arabic', serif;
+  --font-cjk-sc: 'Noto Sans SC', sans-serif;
+  --font-cjk-jp: 'Noto Sans JP', sans-serif;
+  --font-devanagari: 'Noto Sans Devanagari', sans-serif;
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);

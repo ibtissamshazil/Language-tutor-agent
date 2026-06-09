@@ -1,57 +1,60 @@
 import { OpenaiMessage } from "@workspace/api-client-react";
+import { parseTaughtTerms, type LanguageDef } from "@workspace/languages";
 import { cn } from "@/lib/utils";
 import { Avatar } from "@/components/ui/avatar";
 import { User, Sparkles } from "lucide-react";
 
-export function ChatMessage({ message }: { message: OpenaiMessage }) {
+export function ChatMessage({
+  message,
+  language,
+}: {
+  message: OpenaiMessage;
+  language: LanguageDef;
+}) {
   const isUser = message.role === "user";
-  
-  // Basic heuristic to detect Urdu characters and wrap them
+
+  // Render the assistant's reply, turning each [[native|translit|english]]
+  // taught-term markup block into a styled vocabulary chip in the target
+  // language's font and direction. Everything outside the markup is plain text.
   const renderContent = (text: string) => {
-    // Regex for Arabic/Urdu unicode blocks. Consecutive Urdu words separated by
-    // spaces are grouped into a single run so they render as one continuous
-    // sentence (e.g. "میں انگلش بولتا ہوں") instead of one word per line.
-    const urduRegex =
-      /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF](?:[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF \t]*[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF])?/g;
-    
-    const parts = [];
+    const terms = parseTaughtTerms(text);
+    if (terms.length === 0) return text;
+
+    const parts: React.ReactNode[] = [];
     let lastIndex = 0;
-    let match;
 
-    while ((match = urduRegex.exec(text)) !== null) {
-      if (match.index > lastIndex) {
-        parts.push(<span key={`text-${lastIndex}`}>{text.slice(lastIndex, match.index)}</span>);
+    terms.forEach((term, i) => {
+      if (term.index > lastIndex) {
+        parts.push(
+          <span key={`text-${lastIndex}`}>{text.slice(lastIndex, term.index)}</span>,
+        );
       }
 
-      const run = match[0];
-      const words = run.split(/\s+/).filter(Boolean);
-      const urduClass = "font-urdu text-xl leading-loose inline-block my-1 text-primary mr-1";
-
-      if (words.length > 1) {
-        // Show each word stacked on its own line, then the full sentence on one line.
-        words.forEach((word, w) => {
-          parts.push(
-            <span key={`urdu-${match!.index}-w${w}`} className={urduClass} dir="rtl">
-              {word}
+      parts.push(
+        <span
+          key={`term-${i}`}
+          className="inline-flex flex-wrap items-baseline gap-x-2 gap-y-0.5 align-baseline mx-0.5 rounded-md bg-primary/10 px-2 py-0.5"
+        >
+          <span
+            className={cn("text-lg leading-snug text-primary", language.fontClass)}
+            dir={language.direction}
+          >
+            {term.native}
+          </span>
+          {term.transliteration && (
+            <span className="text-sm italic text-secondary-foreground/80">
+              {term.transliteration}
             </span>
-          );
-        });
-        parts.push(
-          <span key={`urdu-${match.index}-full`} className={urduClass} dir="rtl">
-            {words.join(" ")}
-          </span>
-        );
-      } else {
-        parts.push(
-          <span key={`urdu-${match.index}`} className={urduClass} dir="rtl">
-            {run}
-          </span>
-        );
-      }
+          )}
+          {term.english && (
+            <span className="text-sm text-muted-foreground">— {term.english}</span>
+          )}
+        </span>,
+      );
 
-      lastIndex = match.index + run.length;
-    }
-    
+      lastIndex = term.index + term.raw.length;
+    });
+
     if (lastIndex < text.length) {
       parts.push(<span key={`text-${lastIndex}`}>{text.slice(lastIndex)}</span>);
     }
@@ -81,10 +84,7 @@ export function ChatMessage({ message }: { message: OpenaiMessage }) {
             ? "bg-primary text-primary-foreground rounded-tr-sm" 
             : "bg-card text-card-foreground border border-card-border rounded-tl-sm"
         )}>
-          <div className={cn(
-            "whitespace-pre-wrap break-words",
-            !isUser && "[&>span.font-urdu]:block [&>span.font-urdu]:text-right [&>span.font-urdu]:w-full [&>span.font-urdu]:text-2xl [&>span.font-urdu]:mt-3 [&>span.font-urdu]:mb-1"
-          )}>
+          <div className="whitespace-pre-wrap break-words">
             {message.content ? renderContent(message.content) : (
               <div className="flex gap-1 h-5 items-center">
                 <div className="w-1.5 h-1.5 rounded-full bg-current animate-bounce" style={{ animationDelay: "0ms" }} />

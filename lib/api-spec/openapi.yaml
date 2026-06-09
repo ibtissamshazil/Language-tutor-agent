@@ -13,7 +13,7 @@ tags:
   - name: openai
     description: OpenAI AI chat operations
   - name: lessons
-    description: Urdu lesson content
+    description: Beginner lesson content per language
 paths:
   /healthz:
     get:
@@ -77,6 +77,35 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/OpenaiConversationWithMessages"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpenaiError"
+    patch:
+      operationId: updateOpenaiConversation
+      tags: [openai]
+      summary: Update a conversation (e.g. change its language)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OpenaiConversationUpdate"
+      responses:
+        "200":
+          description: Updated conversation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpenaiConversation"
         "404":
           description: Not found
           content:
@@ -148,7 +177,14 @@ paths:
       operationId: getProgressToday
       tags: [progress]
       summary: Today's learning progress
-      description: Returns the student's progress toward today's learning goal.
+      description: Returns the student's progress toward today's learning goal for a language.
+      parameters:
+        - name: language
+          in: query
+          required: false
+          description: Language code to scope progress to. Defaults to the default language.
+          schema:
+            type: string
       responses:
         "200":
           description: Today's progress
@@ -160,8 +196,15 @@ paths:
     get:
       operationId: listLessons
       tags: [lessons]
-      summary: List beginner Urdu lessons
-      description: Returns structured beginner Urdu lessons with vocabulary and phrases.
+      summary: List beginner lessons for a language
+      description: Returns structured beginner lessons with vocabulary and phrases for the requested language.
+      parameters:
+        - name: language
+          in: query
+          required: false
+          description: Language code to return lessons for. Defaults to the default language.
+          schema:
+            type: string
       responses:
         "200":
           description: List of lessons
@@ -180,6 +223,12 @@ paths:
         - name: slug
           in: path
           required: true
+          schema:
+            type: string
+        - name: language
+          in: query
+          required: false
+          description: Language code to return the lesson for. Defaults to the default language.
           schema:
             type: string
       responses:
@@ -211,12 +260,16 @@ components:
           type: integer
         title:
           type: string
+        language:
+          type: string
+          description: Language code the learner is studying in this conversation
         createdAt:
           type: string
           format: date-time
       required:
         - id
         - title
+        - language
         - createdAt
     OpenaiMessage:
       type: object
@@ -245,8 +298,21 @@ components:
           type: string
           minLength: 1
           maxLength: 200
+        language:
+          type: string
+          description: Language code to study in this conversation
       required:
         - title
+    OpenaiConversationUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+        language:
+          type: string
+          description: New language code for this conversation
     OpenaiMessageInput:
       type: object
       properties:
@@ -263,6 +329,9 @@ components:
           type: integer
         title:
           type: string
+        language:
+          type: string
+          description: Language code the learner is studying in this conversation
         createdAt:
           type: string
           format: date-time
@@ -273,6 +342,7 @@ components:
       required:
         - id
         - title
+        - language
         - createdAt
         - messages
     OpenaiError:
@@ -299,27 +369,31 @@ components:
           description: Whether today's goal has been reached
         phrasesLearned:
           type: integer
-          description: Number of Urdu words/phrases taught today
+          description: Number of target-language words/phrases taught today
+        language:
+          type: string
+          description: Language code this progress is scoped to
       required:
         - points
         - target
         - percent
         - achieved
         - phrasesLearned
+        - language
     LessonPhrase:
       type: object
       properties:
-        urdu:
+        native:
           type: string
-          description: The phrase written in Urdu script
+          description: The phrase written in the target language's native script
         transliteration:
           type: string
-          description: Roman/English transliteration of the Urdu phrase
+          description: Roman/English transliteration (may be empty for Latin scripts)
         english:
           type: string
           description: English meaning
       required:
-        - urdu
+        - native
         - transliteration
         - english
     Lesson:

@@ -23,6 +23,7 @@ export const HealthCheckResponse = zod.object({
 export const ListOpenaiConversationsResponseItem = zod.object({
   "id": zod.number(),
   "title": zod.string(),
+  "language": zod.string().describe('Language code the learner is studying in this conversation'),
   "createdAt": zod.coerce.date()
 })
 export const ListOpenaiConversationsResponse = zod.array(ListOpenaiConversationsResponseItem)
@@ -36,7 +37,8 @@ export const createOpenaiConversationBodyTitleMax = 200;
 
 
 export const CreateOpenaiConversationBody = zod.object({
-  "title": zod.string().min(1).max(createOpenaiConversationBodyTitleMax)
+  "title": zod.string().min(1).max(createOpenaiConversationBodyTitleMax),
+  "language": zod.string().optional().describe('Language code to study in this conversation')
 })
 
 
@@ -50,6 +52,7 @@ export const GetOpenaiConversationParams = zod.object({
 export const GetOpenaiConversationResponse = zod.object({
   "id": zod.number(),
   "title": zod.string(),
+  "language": zod.string().describe('Language code the learner is studying in this conversation'),
   "createdAt": zod.coerce.date(),
   "messages": zod.array(zod.object({
   "id": zod.number(),
@@ -58,6 +61,30 @@ export const GetOpenaiConversationResponse = zod.object({
   "content": zod.string(),
   "createdAt": zod.coerce.date()
 }))
+})
+
+
+/**
+ * @summary Update a conversation (e.g. change its language)
+ */
+export const UpdateOpenaiConversationParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const updateOpenaiConversationBodyTitleMax = 200;
+
+
+
+export const UpdateOpenaiConversationBody = zod.object({
+  "title": zod.string().min(1).max(updateOpenaiConversationBodyTitleMax).optional(),
+  "language": zod.string().optional().describe('New language code for this conversation')
+})
+
+export const UpdateOpenaiConversationResponse = zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "language": zod.string().describe('Language code the learner is studying in this conversation'),
+  "createdAt": zod.coerce.date()
 })
 
 
@@ -103,30 +130,39 @@ export const SendOpenaiMessageBody = zod.object({
 
 
 /**
- * Returns the student's progress toward today's learning goal.
+ * Returns the student's progress toward today's learning goal for a language.
  * @summary Today's learning progress
  */
+export const GetProgressTodayQueryParams = zod.object({
+  "language": zod.coerce.string().optional().describe('Language code to scope progress to. Defaults to the default language.')
+})
+
 export const GetProgressTodayResponse = zod.object({
   "points": zod.number().describe('Weighted learning points accumulated today'),
   "target": zod.number().describe('Points needed to reach today\'s goal'),
   "percent": zod.number().describe('Progress toward the goal as a percentage (0-100)'),
   "achieved": zod.boolean().describe('Whether today\'s goal has been reached'),
-  "phrasesLearned": zod.number().describe('Number of Urdu words\/phrases taught today')
+  "phrasesLearned": zod.number().describe('Number of target-language words\/phrases taught today'),
+  "language": zod.string().describe('Language code this progress is scoped to')
 })
 
 
 /**
- * Returns structured beginner Urdu lessons with vocabulary and phrases.
- * @summary List beginner Urdu lessons
+ * Returns structured beginner lessons with vocabulary and phrases for the requested language.
+ * @summary List beginner lessons for a language
  */
+export const ListLessonsQueryParams = zod.object({
+  "language": zod.coerce.string().optional().describe('Language code to return lessons for. Defaults to the default language.')
+})
+
 export const ListLessonsResponseItem = zod.object({
   "slug": zod.string(),
   "title": zod.string(),
   "description": zod.string(),
   "emoji": zod.string().optional().describe('A short label or icon hint for the lesson topic'),
   "phrases": zod.array(zod.object({
-  "urdu": zod.string().describe('The phrase written in Urdu script'),
-  "transliteration": zod.string().describe('Roman\/English transliteration of the Urdu phrase'),
+  "native": zod.string().describe('The phrase written in the target language\'s native script'),
+  "transliteration": zod.string().describe('Roman\/English transliteration (may be empty for Latin scripts)'),
   "english": zod.string().describe('English meaning')
 }))
 })
@@ -140,14 +176,18 @@ export const GetLessonParams = zod.object({
   "slug": zod.coerce.string()
 })
 
+export const GetLessonQueryParams = zod.object({
+  "language": zod.coerce.string().optional().describe('Language code to return the lesson for. Defaults to the default language.')
+})
+
 export const GetLessonResponse = zod.object({
   "slug": zod.string(),
   "title": zod.string(),
   "description": zod.string(),
   "emoji": zod.string().optional().describe('A short label or icon hint for the lesson topic'),
   "phrases": zod.array(zod.object({
-  "urdu": zod.string().describe('The phrase written in Urdu script'),
-  "transliteration": zod.string().describe('Roman\/English transliteration of the Urdu phrase'),
+  "native": zod.string().describe('The phrase written in the target language\'s native script'),
+  "transliteration": zod.string().describe('Roman\/English transliteration (may be empty for Latin scripts)'),
   "english": zod.string().describe('English meaning')
 }))
 })

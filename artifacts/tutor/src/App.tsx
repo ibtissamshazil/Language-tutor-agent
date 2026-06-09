@@ -7,6 +7,7 @@ import { AppLayout } from "@/components/layout";
 import ChatPage from "@/pages/chat";
 import LessonsPage from "@/pages/lessons";
 import LessonDetailPage from "@/pages/lesson-detail";
+import { LanguageProvider } from "@/hooks/use-language";
 
 const queryClient = new QueryClient();
 
@@ -27,12 +28,14 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-          <Router />
-        </WouterRouter>
-        <Toaster />
-      </TooltipProvider>
+      <LanguageProvider>
+        <TooltipProvider>
+          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+            <Router />
+          </WouterRouter>
+          <Toaster />
+        </TooltipProvider>
+      </LanguageProvider>
     </QueryClientProvider>
   );
 }

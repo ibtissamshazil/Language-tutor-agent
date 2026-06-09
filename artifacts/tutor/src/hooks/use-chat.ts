@@ -10,7 +10,7 @@ import {
   OpenaiMessage
 } from "@workspace/api-client-react";
 
-export function useChat(conversationId?: number) {
+export function useChat(conversationId?: number, newConversationLanguage?: string) {
   const queryClient = useQueryClient();
   const createConversation = useCreateOpenaiConversation();
   
@@ -67,7 +67,9 @@ export function useChat(conversationId?: number) {
       if (!targetConversationId) {
         // Create conversation first
         const title = trimmed.slice(0, 30) + (trimmed.length > 30 ? "..." : "");
-        const newConv = await createConversation.mutateAsync({ data: { title } });
+        const newConv = await createConversation.mutateAsync({
+          data: { title, language: newConversationLanguage },
+        });
         targetConversationId = newConv.id;
         activeConversationIdRef.current = newConv.id;
         queryClient.invalidateQueries({ queryKey: getListOpenaiConversationsQueryKey() });
@@ -137,6 +139,9 @@ export function useChat(conversationId?: number) {
     isLoading: isLoadingConversation,
     isStreaming,
     error,
-    sendMessage
+    sendMessage,
+    // The conversation's persisted language once loaded; undefined for a brand
+    // new chat (the caller falls back to the active global language).
+    conversationLanguage: conversationData?.language,
   };
 }

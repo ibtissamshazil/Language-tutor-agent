@@ -6,12 +6,12 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface OpenaiConversationInput {
+export interface OpenaiConversationUpdate {
   /**
      * @minLength 1
      * @maxLength 200
      */
-  title: string;
-  /** Language code to study in this conversation */
+  title?: string;
+  /** New language code for this conversation */
   language?: string;
 }

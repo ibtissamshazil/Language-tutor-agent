@@ -12,6 +12,8 @@ export interface HealthStatus {
 export interface OpenaiConversation {
   id: number;
   title: string;
+  /** Language code the learner is studying in this conversation */
+  language: string;
   createdAt: string;
 }
 
@@ -29,6 +31,18 @@ export interface OpenaiConversationInput {
      * @maxLength 200
      */
   title: string;
+  /** Language code to study in this conversation */
+  language?: string;
+}
+
+export interface OpenaiConversationUpdate {
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  title?: string;
+  /** New language code for this conversation */
+  language?: string;
 }
 
 export interface OpenaiMessageInput {
@@ -42,6 +56,8 @@ export interface OpenaiMessageInput {
 export interface OpenaiConversationWithMessages {
   id: number;
   title: string;
+  /** Language code the learner is studying in this conversation */
+  language: string;
   createdAt: string;
   messages: OpenaiMessage[];
 }
@@ -59,14 +75,16 @@ export interface DailyProgress {
   percent: number;
   /** Whether today's goal has been reached */
   achieved: boolean;
-  /** Number of Urdu words/phrases taught today */
+  /** Number of target-language words/phrases taught today */
   phrasesLearned: number;
+  /** Language code this progress is scoped to */
+  language: string;
 }
 
 export interface LessonPhrase {
-  /** The phrase written in Urdu script */
-  urdu: string;
-  /** Roman/English transliteration of the Urdu phrase */
+  /** The phrase written in the target language's native script */
+  native: string;
+  /** Roman/English transliteration (may be empty for Latin scripts) */
   transliteration: string;
   /** English meaning */
   english: string;
@@ -80,4 +98,25 @@ export interface Lesson {
   emoji?: string;
   phrases: LessonPhrase[];
 }
+
+export type GetProgressTodayParams = {
+/**
+ * Language code to scope progress to. Defaults to the default language.
+ */
+language?: string;
+};
+
+export type ListLessonsParams = {
+/**
+ * Language code to return lessons for. Defaults to the default language.
+ */
+language?: string;
+};
+
+export type GetLessonParams = {
+/**
+ * Language code to return the lesson for. Defaults to the default language.
+ */
+language?: string;
+};
 

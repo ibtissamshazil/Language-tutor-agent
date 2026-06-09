@@ -5,10 +5,11 @@ import {
 import { Trophy, Flame } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export function DailyProgressBar() {
-  const { data } = useGetProgressToday({
+export function DailyProgressBar({ language }: { language: string }) {
+  const params = { language };
+  const { data } = useGetProgressToday(params, {
     query: {
-      queryKey: getGetProgressTodayQueryKey(),
+      queryKey: getGetProgressTodayQueryKey(params),
       refetchOnWindowFocus: true,
     },
   });
