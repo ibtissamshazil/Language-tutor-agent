@@ -52,3 +52,19 @@ then probe `GET https://openrouter.ai/api/v1/models` and filter for
 that return non-null, clean prose, in reasonable time, with the taught-term markup
 intact. A 429 on the first attempt often clears on retry, so probe twice before
 discarding a model. `OPENROUTER_MODEL` still overrides everything as an escape hatch.
+
+## Instruction-following differs sharply across the free chain (probed 2026-09-22)
+Availability is not the only axis — the chain members are not interchangeable in
+quality. Probed with the app's real system prompt (a demanding one: strict
+taught-term markup plus a long dialect brief), only `inclusionai/ling-3.0-flash-vl:free`
+returned a complete, well-formed lesson. The other three chain members returned an
+EMPTY completion for the same request in a single-model run.
+
+**Why this matters:** the fallback chain advances on *availability* failures
+(a create() that throws), never on a bad or empty answer. So a weaker model that
+answers with nothing still "succeeds" and the learner sees a blank reply.
+
+**How to apply:** when ordering the chain, put the best instruction-follower first,
+and when chat returns something empty or off-format, check the "Generating with
+model" log line before suspecting the prompt — it names the model that actually
+served that reply.
