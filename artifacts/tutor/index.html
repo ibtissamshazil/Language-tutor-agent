@@ -3,6 +3,29 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <script>
+      // Apply the saved theme before first paint so a learner in dark mode
+      // never gets flashed with a white screen on load. Mirrors the storage
+      // key and resolution logic in src/hooks/use-theme.tsx.
+      (function () {
+        var mode = "system";
+        try {
+          var stored = localStorage.getItem("tutor.theme");
+          if (stored === "light" || stored === "dark") mode = stored;
+        } catch (e) {
+          // Storage blocked (private mode): fall through to the system theme
+          // rather than defaulting to light, which would flash on a dark device.
+        }
+        var dark =
+          mode === "dark" ||
+          (mode === "system" &&
+            !!window.matchMedia &&
+            window.matchMedia("(prefers-color-scheme: dark)").matches);
+        document.documentElement.classList.toggle("dark", dark);
+        document.documentElement.style.colorScheme = dark ? "dark" : "light";
+      })();
+    </script>
     <title>Language Tutor</title>
     <meta name="description" content="Language Tutor — an AI tutor that teaches you a new language through bilingual chat." />
     <meta name="robots" content="index, follow" />

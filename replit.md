@@ -1,6 +1,6 @@
 # Language Tutor
 
-An AI-powered language tutor web app: a chat interface where an LLM teaches a target language to English speakers, mixing both languages so learners pick up the right words in context. Supports 10 languages (Spanish, French, German, Italian, Portuguese, Mandarin Chinese, Japanese, Hindi, Arabic, Urdu). Includes browsable beginner lessons (greetings, numbers, common phrases) with native script, transliteration, and English meaning. The app name "Language Tutor" is fixed (it does not track the active language) and is shown in the sidebar/header, the browser tab title, and the social/meta tags.
+An AI-powered language tutor web app: a chat interface where an LLM teaches a target language to English speakers, mixing both languages so learners pick up the right words in context. Supports 11 languages (Spanish, French, German, Italian, Portuguese, Mandarin Chinese, Japanese, Hindi, Arabic, Syrian Arabic, Urdu) — "Syrian Arabic" (`ar-sy`) is the spoken Levantine dialect and is a separate registry entry from Modern Standard Arabic (`ar`), steered purely through its `promptScriptNote`. Includes browsable beginner lessons (greetings, numbers, common phrases) with native script, transliteration, and English meaning. The app name "Language Tutor" is fixed (it does not track the active language) and is shown in the sidebar/header, the browser tab title, and the social/meta tags.
 
 ## Run & Operate
 
@@ -66,7 +66,15 @@ An AI-powered language tutor web app: a chat interface where an LLM teaches a ta
 
 - Chat tutor at `/` (and `/chat/:id`): pick a language in the sidebar, start/continue/delete conversations, streaming bilingual replies. A top progress bar shows progress toward today's per-language learning goal; the tutor proactively tells the student what to learn next and, once the daily goal is reached, congratulates them and offers to continue or rest till tomorrow. After a couple of messages, a dismissible hint lets the learner change the current conversation's language.
 - Lessons browser at `/lessons` and `/lessons/:slug`: beginner topics for the active language, plus a "Practice in Chat" jump-off.
-- Settings at `/settings`: change the active language and expertise level. These apply to NEW conversations and are shared with the sidebar language picker via `LanguageProvider` (persisted in localStorage).
+- Settings at `/settings`: change the active language, expertise level, and colour theme. Language/level apply to NEW conversations and are shared with the sidebar language picker via `LanguageProvider` (persisted in localStorage).
+
+## Theming (light / dark)
+
+- `ThemeProvider` (`artifacts/tutor/src/hooks/use-theme.tsx`) owns the theme. Three modes — `light`, `dark`, `system` — persisted in localStorage under `tutor.theme`; `system` follows the OS live via a `matchMedia` listener. The resolved theme is applied as the `dark` class on `<html>` plus `style.colorScheme`.
+- An inline boot script in `artifacts/tutor/index.html` applies the stored theme BEFORE first paint (no white flash). It duplicates the storage key and resolution logic — change both together.
+- The switch is the segmented `ThemeToggle` (`components/theme-toggle.tsx`): icon-only in the sidebar footer, labelled (`showLabels`) on the settings page.
+- Both palettes live as HSL custom properties in `artifacts/tutor/src/index.css` (`:root` = light, `.dark` = dark) and are consumed only through the `@theme inline` semantic tokens. Add colours as tokens in BOTH blocks — never hardcode a hex/`text-white` in a component, or it will break in one theme.
+- The dark palette is tuned for long sessions, not just darkness: deep desaturated navy instead of pure black (avoids halation), warm off-white text instead of `#fff`, secondary text at ~8:1, and a LIGHTER terracotta `--primary` (the light-mode 52% lightness only reaches ~3:1 on dark) so the taught native script stays legible. `.dark` also flips the `--elevate-*` / `--*-outline` overlays to white-based.
 
 ## Daily progress
 
@@ -81,8 +89,8 @@ An AI-powered language tutor web app: a chat interface where an LLM teaches a ta
 
 - `tw-animate-css` `animate-in` does NOT apply `fill-mode: forwards` by default. Do NOT pair `animate-in fade-in` with a static `opacity-0` class — the element reverts to (or starts) invisible. Use `animate-in fade-in` alone, or set `animationFillMode: "both"` inline.
 - Restart the `artifacts/api-server` workflow after adding/mounting new routes — the dev workflow builds once on start.
-- LLM provider/model is resolved in `artifacts/api-server/src/lib/llm.ts` via `resolveModel(language)`. OpenRouter free models use `max_tokens`; the Replit `gpt-5.4` fallback needs `max_completion_tokens` — the chat route branches on `usingOpenRouter`. Model precedence on OpenRouter: global `OPENROUTER_MODEL` env override → the language's `model.openRouter` → shared default. Harder non-Latin scripts default to a stronger free model, Latin scripts to a lighter one.
-- OpenRouter free model slugs (the `:free` ones) come and go and get rate-limited (HTTP 429) per upstream provider. If chat returns "Failed to generate a reply", check the api-server log for the OpenRouter error, then probe `GET https://openrouter.ai/api/v1/models` (filter pricing prompt+completion == 0) and set `OPENROUTER_MODEL` to a working one.
+- LLM provider/model is resolved in `artifacts/api-server/src/lib/llm.ts` via `resolveModels(language)`, which returns an ORDERED CANDIDATE LIST, not one slug. The chat route walks it and retries the next candidate whenever `create()` fails before any token is streamed (mid-stream failures are not retried). Precedence on OpenRouter: global `OPENROUTER_MODEL` env override (used alone) → the language's `model.openRouter` → the shared `OPENROUTER_FALLBACK_MODELS` chain. OpenRouter free models use `max_tokens`; the Replit `gpt-5.4` fallback needs `max_completion_tokens` — the route branches on `usingOpenRouter`.
+- OpenRouter free model slugs (the `:free` ones) come and go and get rate-limited (HTTP 429) per upstream provider — expect the pinned ones to die eventually. The fallback chain absorbs this; when the WHOLE chain is dead, probe `GET https://openrouter.ai/api/v1/models` (filter pricing prompt+completion == 0), test candidates with a real chat completion, and refresh the chain. Two traps when picking replacements: reasoning models can return `content: null` (all output in `reasoning`), and the `openrouter/free` auto-router can silently route to a classifier or code-only model that answers with something unusable — never use it here.
 - Do not change the OpenAPI `info.title` — it controls generated filenames.
 - Never use `console.log` in server code — use `req.log` in handlers, `logger` elsewhere.
 - Adding a language is ideally just a new entry in `LANGUAGES` (registry) plus a `LESSONS_BY_LANGUAGE` block and, for a non-Latin script, a font in `index.css` + matching `--font-*` token. No prompt/scoring/render code should need touching.

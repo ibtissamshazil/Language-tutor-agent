@@ -41,10 +41,13 @@ export interface LanguageDef {
   model?: LanguageModelConfig;
 }
 
-// A capable free OpenRouter model reserved for harder, non-Latin scripts.
-const STRONG_MODEL = "openai/gpt-oss-120b:free";
-// A lighter free model that is plenty for Latin-script languages.
-const LIGHT_MODEL = "openai/gpt-oss-20b:free";
+// No language pins a model by default: the server walks a shared, ordered chain
+// of free OpenRouter models (see api-server `llm.ts`), which is the only thing
+// that survives free slugs being retired, flipped to paid, or rate-limited.
+//
+// `model.openRouter` stays available per language for the case where one
+// language genuinely needs a specific model — but pinning one that is often
+// rate-limited just adds a failed round trip before the chain takes over.
 
 export const LANGUAGES: LanguageDef[] = [
   {
@@ -57,7 +60,6 @@ export const LANGUAGES: LanguageDef[] = [
     greeting: "¡Hola! ¿Cómo estás?",
     promptScriptNote: "written in the Latin alphabet",
     markupExample: "[[hola||hello]]",
-    model: { openRouter: LIGHT_MODEL },
   },
   {
     code: "fr",
@@ -69,7 +71,6 @@ export const LANGUAGES: LanguageDef[] = [
     greeting: "Bonjour ! Comment ça va ?",
     promptScriptNote: "written in the Latin alphabet",
     markupExample: "[[bonjour||hello]]",
-    model: { openRouter: LIGHT_MODEL },
   },
   {
     code: "de",
@@ -81,7 +82,6 @@ export const LANGUAGES: LanguageDef[] = [
     greeting: "Hallo! Wie geht's?",
     promptScriptNote: "written in the Latin alphabet",
     markupExample: "[[hallo||hello]]",
-    model: { openRouter: LIGHT_MODEL },
   },
   {
     code: "it",
@@ -93,7 +93,6 @@ export const LANGUAGES: LanguageDef[] = [
     greeting: "Ciao! Come stai?",
     promptScriptNote: "written in the Latin alphabet",
     markupExample: "[[ciao||hello]]",
-    model: { openRouter: LIGHT_MODEL },
   },
   {
     code: "pt",
@@ -105,7 +104,6 @@ export const LANGUAGES: LanguageDef[] = [
     greeting: "Olá! Tudo bem?",
     promptScriptNote: "written in the Latin alphabet",
     markupExample: "[[olá||hello]]",
-    model: { openRouter: LIGHT_MODEL },
   },
   {
     code: "zh",
@@ -117,7 +115,6 @@ export const LANGUAGES: LanguageDef[] = [
     greeting: "你好！",
     promptScriptNote: "written in simplified Chinese characters (Hanzi)",
     markupExample: "[[你好|nǐ hǎo|hello]]",
-    model: { openRouter: STRONG_MODEL },
   },
   {
     code: "ja",
@@ -129,7 +126,6 @@ export const LANGUAGES: LanguageDef[] = [
     greeting: "こんにちは！",
     promptScriptNote: "written in Japanese script (hiragana, katakana and kanji)",
     markupExample: "[[こんにちは|konnichiwa|hello]]",
-    model: { openRouter: STRONG_MODEL },
   },
   {
     code: "hi",
@@ -141,7 +137,6 @@ export const LANGUAGES: LanguageDef[] = [
     greeting: "नमस्ते!",
     promptScriptNote: "written in the Devanagari script",
     markupExample: "[[नमस्ते|namaste|hello]]",
-    model: { openRouter: STRONG_MODEL },
   },
   {
     code: "ar",
@@ -153,7 +148,18 @@ export const LANGUAGES: LanguageDef[] = [
     greeting: "مرحبا!",
     promptScriptNote: "written right-to-left in the Arabic script",
     markupExample: "[[مرحبا|marhaba|hello]]",
-    model: { openRouter: STRONG_MODEL },
+  },
+  {
+    code: "ar-sy",
+    name: "Syrian Arabic",
+    nativeName: "اللهجة السورية",
+    direction: "rtl",
+    fontClass: "font-arabic",
+    usesTransliteration: true,
+    greeting: "مرحبا! كيفك؟",
+    promptScriptNote:
+      "the everyday spoken Levantine dialect of Syria (Damascus/Aleppo), written right-to-left in the Arabic script — teach the colloquial spoken form people actually use on the street, NOT Modern Standard Arabic (fusha)",
+    markupExample: "[[كيفك|kifak|how are you]]",
   },
   {
     code: "ur",
@@ -165,7 +171,6 @@ export const LANGUAGES: LanguageDef[] = [
     greeting: "السلام علیکم",
     promptScriptNote: "written right-to-left in the Nastaliq (Urdu) script",
     markupExample: "[[سلام|salaam|peace / hello]]",
-    model: { openRouter: STRONG_MODEL },
   },
 ];
 

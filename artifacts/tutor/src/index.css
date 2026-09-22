@@ -117,45 +117,71 @@
   --radius: 0.75rem;
 }
 
+/*
+ * Dark theme, tuned for long study sessions rather than for looking dark.
+ *
+ * Contrast targets (WCAG): body text >= 12:1, secondary text >= 7:1, the taught
+ * native script (the thing being learned) >= 6:1, and borders visible enough to
+ * separate surfaces without glowing.
+ *
+ * Two deliberate eye-strain choices: the background is a deep desaturated
+ * navy rather than pure black (pure black + bright text causes halation, where
+ * letters smear), and the foreground is a warm off-white rather than #fff (full
+ * white at maximum contrast is what makes eyes ache after an hour).
+ */
 .dark {
-  --background: 200 60% 11%;
-  --foreground: 42 60% 98%;
-  
-  --border: 200 40% 20%;
-  --input: 200 40% 20%;
-  --ring: 13 58% 52%;
+  color-scheme: dark;
 
-  --card: 200 50% 14%;
-  --card-foreground: 42 60% 98%;
-  --card-border: 200 40% 20%;
+  /* Overlays flip to white-based so raised/hovered surfaces lift out of the
+     dark background instead of sinking into it. */
+  --button-outline: rgba(255,255,255, .14);
+  --badge-outline: rgba(255,255,255, .10);
+  --opaque-button-border-intensity: 12;
+  --elevate-1: rgba(255,255,255, .05);
+  --elevate-2: rgba(255,255,255, .10);
 
-  --sidebar: 200 55% 12%;
-  --sidebar-foreground: 42 60% 98%;
-  --sidebar-border: 200 40% 20%;
-  --sidebar-primary: 13 58% 52%;
-  --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 200 45% 18%;
-  --sidebar-accent-foreground: 42 60% 98%;
-  --sidebar-ring: 13 58% 52%;
+  /* Deep navy base, warm off-white text: ~14:1 contrast. */
+  --background: 205 38% 9%;
+  --foreground: 40 32% 94%;
 
-  --popover: 200 50% 14%;
-  --popover-foreground: 42 60% 98%;
-  --popover-border: 200 40% 20%;
+  --border: 205 24% 26%;
+  --input: 205 24% 28%;
+  --ring: 16 88% 66%;
 
-  --primary: 13 58% 52%;
-  --primary-foreground: 0 0% 100%;
+  --card: 205 34% 13%;
+  --card-foreground: 40 32% 94%;
+  --card-border: 205 24% 24%;
 
-  --secondary: 150 18% 45%;
-  --secondary-foreground: 0 0% 100%;
+  --sidebar: 205 40% 11%;
+  --sidebar-foreground: 40 32% 94%;
+  --sidebar-border: 205 24% 24%;
+  --sidebar-primary: 16 82% 64%;
+  --sidebar-primary-foreground: 205 45% 10%;
+  --sidebar-accent: 205 28% 21%;
+  --sidebar-accent-foreground: 40 32% 96%;
+  --sidebar-ring: 16 88% 66%;
 
-  --muted: 200 45% 18%;
-  --muted-foreground: 200 20% 70%;
+  --popover: 205 34% 14%;
+  --popover-foreground: 40 32% 94%;
+  --popover-border: 205 24% 26%;
 
-  --accent: 200 45% 18%;
-  --accent-foreground: 42 60% 98%;
+  /* Terracotta lifted to a warm amber so the taught native script stays legible
+     on dark (the 52% lightness used in light mode drops to ~3:1 here). */
+  --primary: 16 82% 64%;
+  --primary-foreground: 205 45% 10%;
 
-  --destructive: 0 62% 30%;
-  --destructive-foreground: 0 0% 100%;
+  --secondary: 150 32% 58%;
+  --secondary-foreground: 205 45% 10%;
+
+  --muted: 205 28% 19%;
+  /* ~8:1 against the background — secondary text stays readable, not ghosted. */
+  --muted-foreground: 205 16% 74%;
+
+  --accent: 205 28% 21%;
+  --accent-foreground: 40 32% 96%;
+
+  --destructive: 0 74% 66%;
+  --destructive-foreground: 0 30% 10%;
 }
 
 @layer base {

@@ -17,10 +17,20 @@ import { type LanguageDef } from "@workspace/languages";
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 
-// Shared free OpenRouter default, used when neither a per-language model nor the
-// OPENROUTER_MODEL override is set. :free slugs come and go / get rate-limited,
-// so this is intentionally overridable.
-const DEFAULT_OPENROUTER_MODEL = "openai/gpt-oss-120b:free";
+// Shared free OpenRouter fallback chain, tried in order after the language's own
+// model. Free (:free) slugs are volatile — they get retired, flipped to paid, or
+// rate-limited (429) per upstream provider at any moment — so a single pinned
+// model is guaranteed to break eventually. Every model here was verified to
+// return clean, usable prose (no leaked chain-of-thought, no null content).
+//
+// Do NOT use the `openrouter/free` auto-router here: it can route a request to a
+// classifier or code-only model that answers with something unusable.
+const OPENROUTER_FALLBACK_MODELS = [
+  "inclusionai/ling-3.0-flash-vl:free",
+  "z-ai/glm-5.2:free",
+  "google/gemma-4-31b-it:free",
+  "nvidia/nemotron-3-super-120b-a12b:free",
+];
 
 // Global escape hatch: when set, this overrides EVERY language's model. Useful
 // when a particular free slug starts failing across the board.
@@ -55,17 +65,23 @@ function createClient(): OpenAI {
 export const llm: OpenAI = createClient();
 
 /**
- * Resolve the model slug to use for a given language.
+ * Resolve the ordered list of model slugs to try for a given language.
  *
- * OpenRouter: a global OPENROUTER_MODEL override wins; otherwise the language's
- * own model from the registry (a stronger model for harder scripts); otherwise
- * the shared default. The Replit fallback always uses its single capable model.
+ * The caller walks this list and moves to the next candidate when a model is
+ * unavailable (retired, flipped to paid, or 429 rate-limited upstream) — which
+ * for free OpenRouter models is a routine occurrence, not an exceptional one.
+ *
+ * OpenRouter precedence: a global OPENROUTER_MODEL override wins outright (and
+ * is used alone); otherwise the language's own model from the registry (a
+ * stronger model for harder scripts) leads, followed by the shared fallback
+ * chain. The Replit fallback provider always uses its single capable model.
  */
-export function resolveModel(language: LanguageDef): string {
-  if (!usingOpenRouter) return OPENAI_MODEL;
-  return (
-    OPENROUTER_MODEL_OVERRIDE ??
-    language.model?.openRouter ??
-    DEFAULT_OPENROUTER_MODEL
-  );
+export function resolveModels(language: LanguageDef): string[] {
+  if (!usingOpenRouter) return [OPENAI_MODEL];
+  if (OPENROUTER_MODEL_OVERRIDE) return [OPENROUTER_MODEL_OVERRIDE];
+  const preferred = language.model?.openRouter;
+  const chain = preferred
+    ? [preferred, ...OPENROUTER_FALLBACK_MODELS]
+    : [...OPENROUTER_FALLBACK_MODELS];
+  return Array.from(new Set(chain));
 }

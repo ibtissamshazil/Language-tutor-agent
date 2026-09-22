@@ -27,10 +27,28 @@ fallback needs `max_completion_tokens`. The chat route branches on `usingOpenRou
   "temporarily rate-limited upstream", e.g. provider Venice for llama-3.3-70b:free).
   A 429 surfaces to the user as "Failed to generate a reply".
 
+**Do not pin a single slug.** Any single free model WILL break; pinning one turns
+routine churn into a total outage of every language at once. The server therefore
+resolves an ordered candidate chain and retries the next model when the request
+fails before any token is streamed.
+
+**Why:** both previously pinned slugs went "unavailable for free" simultaneously,
+which took the whole app down even though ~24 other free models were live.
+
+## Traps when picking replacement free models
+- **Reasoning models return `content: null`** — the whole answer lands in a
+  `reasoning` field, so the chat renders blank. Others leak visible
+  chain-of-thought ("Okay, the user is asking...") into the reply.
+- **`openrouter/free` (the auto-router) is unsafe as a default** — it can route a
+  request to a content-safety classifier or a code-only model, which answers with
+  something like "User Safety: safe" instead of a lesson.
+- **Some free models are 10-100x slower** (one took 136s for a short reply). Time
+  the probe, don't just check for HTTP 200.
+
 **How to apply:** when chat fails, read the api-server log for the OpenRouter error,
 then probe `GET https://openrouter.ai/api/v1/models` and filter for
-`pricing.prompt == 0 && pricing.completion == 0` to find currently-free models. Test
-a candidate directly with a `chat/completions` curl before committing. Set
-`OPENROUTER_MODEL` to override the default. As of the switch,
-`openai/gpt-oss-120b:free` and `google/gemma-4-31b-it:free` responded reliably and
-produced clean Urdu; `meta-llama/llama-3.3-70b-instruct:free` was frequently 429.
+`pricing.prompt == 0 && pricing.completion == 0`. Test each candidate with a REAL
+`chat/completions` call using the app's own system prompt, and accept only models
+that return non-null, clean prose, in reasonable time, with the taught-term markup
+intact. A 429 on the first attempt often clears on retry, so probe twice before
+discarding a model. `OPENROUTER_MODEL` still overrides everything as an escape hatch.
