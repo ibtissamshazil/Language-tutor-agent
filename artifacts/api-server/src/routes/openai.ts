@@ -28,9 +28,16 @@ function buildSystemPrompt(language: LanguageDef, level: LevelDef): string {
     ? `transliteration = a roman-letter pronunciation (REQUIRED for ${name})`
     : `transliteration = leave this field EMPTY for ${name} (it uses the Latin alphabet, so no transliteration is needed)`;
 
+  // A dialect brief (only some languages have one) is a hard authenticity
+  // constraint, so it sits directly under the intro — before the mechanical
+  // markup rules — where the model is most likely to keep it in view.
+  const dialectSection = language.promptDialectBrief
+    ? `\n\n${language.promptDialectBrief}`
+    : "";
+
   return `You are a warm, patient and encouraging ${name} language tutor.
 
-The student is fluent in English and is learning ${name}. Their expertise level is ${level.name}: ${level.promptNote} Adapt the depth, pace and amount of target-language usage to this level. ${name} is ${promptScriptNote}.
+The student is fluent in English and is learning ${name}. Their expertise level is ${level.name}: ${level.promptNote} Adapt the depth, pace and amount of target-language usage to this level. ${name} is ${promptScriptNote}.${dialectSection}
 
 Teaching rules:
 - Always explain and converse in ENGLISH. English is the language of explanation; ${name} only appears as the specific words and phrases you are teaching.
@@ -46,6 +53,8 @@ Teaching rules:
   {{native|transliteration|english}}
   where native = the full sentence in ${name} (${promptScriptNote}), ${usesTransliteration ? `transliteration = the full roman-letter pronunciation of the whole sentence` : `transliteration = leave EMPTY for ${name}`}, and english = the full English meaning. Use single pipe (|) separators; a field must NOT contain "|" or "}". The app renders this block as three lines — native, transliteration, English — one under the other. Example sentence block: {{${markupExample.replace(/^\[\[/, "").replace(/\]\]$/, "")}}}
   Use {{...}} ONLY for a full example sentence, and [[...]] for the individual words/phrases you teach. Do not put a whole sentence inside [[...]].
+  The example sentence must be something a native speaker would genuinely say in one breath. If the terms you just taught do not belong together in one natural sentence, use only the ones that do — NEVER string unrelated phrases together with "and" to force them into a single sentence.
+  Do not teach bare grammatical glue (and, the, of, a) as its own [[...]] term; teach it inside a phrase where it does some work.
   In EVERY reply where you teach at least one ${name} word or phrase, you MUST include at least one {{...}} example sentence after the [[...]] terms.
 - Do NOT carry on the conversation in ${name}. Outside of the [[...]] and {{...}} markup blocks, everything you write is plain English so a reader who knows only English can follow every part of your reply.
 - Keep responses concise and digestible. Teach a few items at a time and invite the student to practice.
@@ -234,12 +243,21 @@ router.post("/conversations/:id/messages", async (req, res) => {
   const language = getLanguage(conversation.language);
   const level = getLevel(conversation.level);
 
-  // Build the full conversation history for context
-  const history = await db
+  // Build the conversation history for context, capped at the most recent turns.
+  //
+  // The free models in the fallback chain have context windows as small as 32K
+  // tokens, and a long-running lesson plus a detailed dialect brief will
+  // eventually exhaust that — which fails the whole reply rather than degrading
+  // it. Keep the newest slice (ordered oldest-first for the model) so a long
+  // study session stays answerable.
+  const HISTORY_TURNS = 40;
+  const recent = await db
     .select()
     .from(messages)
     .where(eq(messages.conversationId, id))
-    .orderBy(asc(messages.createdAt));
+    .orderBy(desc(messages.createdAt))
+    .limit(HISTORY_TURNS);
+  const history = recent.reverse();
 
   // Compute today's learning progress IN THIS LANGUAGE so the tutor can react to
   // how close the student is to today's goal. Scope to assistant messages from
@@ -316,6 +334,7 @@ router.post("/conversations/:id/messages", async (req, res) => {
           },
           { signal: abortController.signal },
         );
+        req.log.info({ model, language: language.code }, "Generating with model");
         break;
       } catch (err) {
         if (clientDisconnected) throw err;

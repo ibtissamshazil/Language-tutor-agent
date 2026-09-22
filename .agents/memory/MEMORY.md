@@ -4,3 +4,4 @@
 - [OpenRouter free LLM](openrouter-free-llm.md) — tutor runs free via OpenRouter + own key; never pin ONE `:free` slug (they die together) — resolve an ordered fallback chain.
 - [SSE client disconnect](sse-client-disconnect.md) — abort streaming generations from `res.on("close")`; a `req`-based listener never fires for a POST.
 - [Missing @workspace/* symlink](workspace-package-symlink.md) — after adding a lib export, leaf typecheck may fail to resolve the import; `pnpm install` repairs the symlink even if "up to date".
+- [Teaching a spoken dialect](dialect-teaching.md) — a dialect needs its own long prompt brief (forbidden standard-variety forms first); a one-line "use the colloquial form" decays after the first reply.
