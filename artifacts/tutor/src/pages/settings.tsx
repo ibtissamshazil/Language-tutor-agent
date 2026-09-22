@@ -1,6 +1,8 @@
 import { LANGUAGES, LEVELS } from "@workspace/languages";
 import { useLanguage } from "@/hooks/use-language";
 import { LanguageSelect } from "@/components/language-select";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { useTheme } from "@/hooks/use-theme";
 import {
   Select,
   SelectContent,
@@ -11,6 +13,7 @@ import {
 
 export default function SettingsPage() {
   const { code, setCode, level, setLevel, levelDef } = useLanguage();
+  const { mode, resolved } = useTheme();
 
   const activeLanguage = LANGUAGES.find((l) => l.code === code);
 
@@ -71,6 +74,25 @@ export default function SettingsPage() {
             </SelectContent>
           </Select>
           <p className="text-xs text-muted-foreground">{levelDef.description}</p>
+        </section>
+
+        <section className="space-y-3 rounded-xl border border-border bg-card p-5 shadow-sm">
+          <div className="space-y-1">
+            <label className="text-sm font-semibold text-foreground">
+              Appearance
+            </label>
+            <p className="text-xs text-muted-foreground">
+              Dark mode is tuned for long study sessions: a deep navy base
+              instead of black, warm off-white text, and a brighter accent so
+              the native script stays sharp.
+            </p>
+          </div>
+          <ThemeToggle showLabels />
+          <p className="text-xs text-muted-foreground">
+            {mode === "system"
+              ? `Following your device setting (currently ${resolved}).`
+              : `Always ${mode}.`}
+          </p>
         </section>
       </div>
     </div>

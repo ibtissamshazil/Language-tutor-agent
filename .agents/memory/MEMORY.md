@@ -1,5 +1,6 @@
 - [tw-animate-css enter animations](tw-animate-css-opacity.md) — never pair `animate-in fade-in` with a static `opacity-0` class; element stays invisible.
 - [Daily progress system](daily-progress-system.md) — progress derived from taught terms in today's assistant messages (not stored); recognized by shared `[[native|translit|english]]` markup parser, not unicode regex; tune DAILY_TARGET only.
 - [Language registry](language-registry.md) — `@workspace/languages` is the single source of truth (prompt/scoring/lessons/render/model); add a language there, not by editing per-side code.
-- [OpenRouter free LLM](openrouter-free-llm.md) — tutor runs free via OpenRouter + own key; `:free` slugs flip to paid / 429, verify against live /models before hardcoding.
+- [OpenRouter free LLM](openrouter-free-llm.md) — tutor runs free via OpenRouter + own key; never pin ONE `:free` slug (they die together) — resolve an ordered fallback chain.
+- [SSE client disconnect](sse-client-disconnect.md) — abort streaming generations from `res.on("close")`; a `req`-based listener never fires for a POST.
 - [Missing @workspace/* symlink](workspace-package-symlink.md) — after adding a lib export, leaf typecheck may fail to resolve the import; `pnpm install` repairs the symlink even if "up to date".

@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { useLanguage } from "@/hooks/use-language";
 import { getLanguage } from "@workspace/languages";
 import { LearningBadge } from "@/components/learning-badge";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useLocation();
@@ -126,6 +127,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             )}
           </div>
         </ScrollArea>
+      </div>
+
+      <div className="flex items-center justify-between gap-2 border-t border-sidebar-border px-4 py-3">
+        <span className="text-xs font-medium text-muted-foreground">Theme</span>
+        <ThemeToggle />
       </div>
     </div>
   );

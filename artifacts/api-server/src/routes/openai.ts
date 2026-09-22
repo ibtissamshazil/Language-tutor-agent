@@ -14,7 +14,7 @@ import {
   type LanguageDef,
   type LevelDef,
 } from "@workspace/languages";
-import { llm, resolveModel, usingOpenRouter } from "../lib/llm";
+import { llm, resolveModels, usingOpenRouter } from "../lib/llm";
 import { startOfToday, summarizeProgress } from "../lib/progress";
 
 const router: IRouter = Router();
@@ -273,34 +273,64 @@ router.post("/conversations/:id/messages", async (req, res) => {
   res.setHeader("Cache-Control", "no-cache");
   res.setHeader("Connection", "keep-alive");
 
-  // Abort the upstream OpenAI generation if the client disconnects so we
-  // don't keep consuming tokens for a response nobody is reading.
+  // Abort the upstream generation if the client disconnects so we don't keep
+  // consuming tokens for a response nobody is reading.
+  //
+  // Listen on the RESPONSE, not the request: `req`'s "close" fires when the
+  // request stream finishes (which for a POST has already happened by the time
+  // we get here), so a req-based listener never sees the disconnect. `res`
+  // "close" fires when the underlying connection goes away — guarded by
+  // `writableEnded` so a normal completed stream is not treated as a drop.
   const abortController = new AbortController();
   let clientDisconnected = false;
-  req.on("close", () => {
+  const onClientGone = () => {
     if (!res.writableEnded) {
       clientDisconnected = true;
       abortController.abort();
     }
-  });
+  };
+  res.on("close", onClientGone);
 
   let fullResponse = "";
   try {
-    const stream = await llm.chat.completions.create(
-      {
-        model: resolveModel(language),
-        // gpt-5.4 (Replit proxy) needs max_completion_tokens; OpenRouter free
-        // models use the standard max_tokens.
-        ...(usingOpenRouter
-          ? { max_tokens: 8192 }
-          : { max_completion_tokens: 8192 }),
-        messages: chatMessages,
-        stream: true,
-      },
-      { signal: abortController.signal },
-    );
+    // Free models are routinely retired, flipped to paid, or rate-limited, so
+    // walk the candidate chain until one actually opens a stream. Only the
+    // initial create() call is retried — once tokens are flowing we are
+    // committed to that model, and a mid-stream failure falls through to the
+    // error handler below.
+    const candidates = resolveModels(language);
+    let stream: Awaited<ReturnType<typeof llm.chat.completions.create>> | undefined;
+    let lastErr: unknown;
+    for (const model of candidates) {
+      try {
+        stream = await llm.chat.completions.create(
+          {
+            model,
+            // gpt-5.4 (Replit proxy) needs max_completion_tokens; OpenRouter
+            // free models use the standard max_tokens.
+            ...(usingOpenRouter
+              ? { max_tokens: 8192 }
+              : { max_completion_tokens: 8192 }),
+            messages: chatMessages,
+            stream: true,
+          },
+          { signal: abortController.signal },
+        );
+        break;
+      } catch (err) {
+        if (clientDisconnected) throw err;
+        lastErr = err;
+        req.log.warn(
+          { model, status: (err as { status?: number })?.status },
+          "Model unavailable, trying next candidate",
+        );
+      }
+    }
+    if (!stream) throw lastErr ?? new Error("No model available");
 
-    for await (const chunk of stream) {
+    for await (const chunk of stream as AsyncIterable<{
+      choices: { delta?: { content?: string | null } }[];
+    }>) {
       const content = chunk.choices[0]?.delta?.content;
       if (content) {
         fullResponse += content;
