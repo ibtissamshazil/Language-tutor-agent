@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { parseSSEStream } from "@/lib/sse";
+import { getPreferredModel } from "@/lib/model-preference";
 import { useQueryClient } from "@tanstack/react-query";
 import { 
   useCreateOpenaiConversation, 
@@ -9,6 +10,30 @@ import {
   useGetOpenaiConversation,
   OpenaiMessage
 } from "@workspace/api-client-react";
+
+/**
+ * A send that failed, described well enough for the UI to offer a way out.
+ *
+ * `code` mirrors the server's error taxonomy (rate_limited, daily_limit,
+ * model_unavailable, ...) so the chat view can show the right next step
+ * without re-parsing the sentence.
+ */
+export interface ChatError {
+  message: string;
+  code?: string;
+  retryAfterSeconds?: number;
+  suggestModelChange?: boolean;
+  retryable?: boolean;
+}
+
+/** Carries a ChatError through the try/catch without losing its fields. */
+class ChatFailure extends Error {
+  readonly detail: ChatError;
+  constructor(detail: ChatError) {
+    super(detail.message);
+    this.detail = detail;
+  }
+}
 
 export function useChat(
   conversationId?: number,
@@ -59,7 +84,14 @@ export function useChat(
     }
   }, [conversationData, conversationId, isStreaming]);
 
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ChatError | null>(null);
+
+  // A failure belongs to the conversation it happened in. Leaving the card up
+  // after the student navigates elsewhere — especially to a brand-new chat —
+  // makes it look like the new chat is already broken.
+  useEffect(() => {
+    setError(null);
+  }, [conversationId]);
 
   const sendMessage = async (content: string, onNewConversation?: (id: number) => void) => {
     const trimmed = content.trim();
@@ -114,18 +146,42 @@ export function useChat(
       const res = await fetch(`${import.meta.env.BASE_URL}api/openai/conversations/${targetConversationId}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: trimmed })
+        body: JSON.stringify({ content: trimmed, model: getPreferredModel() })
       });
 
       if (!res.ok || !res.headers.get("content-type")?.includes("text/event-stream")) {
-        throw new Error(`Request failed with status ${res.status}`);
+        // The request never became a stream: a validation rejection, a missing
+        // conversation, or the server being down. Prefer the server's own
+        // message over the status code when it sent one.
+        const body = await res.json().catch(() => null);
+        throw new ChatFailure({
+          message:
+            typeof body?.error === "string"
+              ? body.error
+              : res.status >= 500
+                ? "The tutor's server isn't responding. Try again in a moment."
+                : `The message couldn't be sent (error ${res.status}).`,
+          code: "request_failed",
+          retryable: res.status >= 500,
+        });
       }
 
-      let streamError: string | null = null;
+      let streamError: ChatError | null = null;
+      let truncatedNotice: ChatError | null = null;
       let received = false;
+      // The server closes every successful reply with a `done` frame. Without
+      // it the connection dropped part-way, and the text on screen may not be
+      // the whole reply — or the whole of what was saved.
+      let completed = false;
       for await (const chunk of parseSSEStream(res)) {
         if (chunk.error) {
-          streamError = chunk.error;
+          streamError = {
+            message: chunk.error,
+            code: chunk.errorCode,
+            retryAfterSeconds: chunk.retryAfterSeconds,
+            suggestModelChange: Boolean(chunk.suggestModelChange),
+            retryable: Boolean(chunk.retryable),
+          };
           break;
         }
         if (chunk.content) {
@@ -140,12 +196,43 @@ export function useChat(
           }
         }
         if (chunk.done) {
+          completed = true;
+          // The reply arrived and is saved, but the model stopped at its token
+          // limit or the provider let go early. Shown as a note under the
+          // reply rather than an error: the text on screen is real and worth
+          // keeping, the student just needs to know there may be more.
+          if (chunk.truncated) {
+            truncatedNotice = {
+              message:
+                "The tutor ran out of room before finishing this reply. Send \"continue\" to hear the rest.",
+              code: "truncated",
+              retryable: true,
+            };
+          }
           break;
         }
       }
 
-      if (streamError || !received) {
-        throw new Error(streamError ?? "The tutor did not return a reply.");
+      if (streamError) throw new ChatFailure(streamError);
+      if (!received) {
+        throw new ChatFailure({
+          message:
+            "The tutor didn't return anything. Send your message again, or pick a different model in Settings.",
+          code: "empty_reply",
+          suggestModelChange: true,
+          retryable: true,
+        });
+      }
+      if (!completed) {
+        // Text arrived but the stream never finished cleanly. Whatever the
+        // server managed to save is authoritative, so reconcile with it
+        // instead of keeping the optimistic bubbles, and say it was cut off.
+        throw new ChatFailure({
+          message:
+            "The connection dropped before the reply finished. Anything already saved is in the conversation — send your message again to get the rest.",
+          code: "interrupted",
+          retryable: true,
+        });
       }
 
       // Awaited so the persisted messages are in the cache BEFORE the guard
@@ -157,11 +244,25 @@ export function useChat(
       queryClient.invalidateQueries({ queryKey: getListOpenaiConversationsQueryKey() });
       queryClient.invalidateQueries({ queryKey: getGetProgressTodayQueryKey() });
 
+      if (truncatedNotice && activeConversationIdRef.current === targetConversationId) {
+        setError(truncatedNotice);
+      }
+
     } catch (e) {
       const stillViewing = activeConversationIdRef.current === targetConversationId;
       if (stillViewing) {
         rollback();
-        setError(e instanceof Error ? e.message : "Something went wrong. Please try again.");
+        setError(
+          e instanceof ChatFailure
+            ? e.detail
+            : {
+                message:
+                  e instanceof Error && e.message
+                    ? e.message
+                    : "Something went wrong. Please try again.",
+                retryable: true,
+              },
+        );
       }
       if (targetConversationId) {
         // Reconcile with whatever the server actually persisted — the user

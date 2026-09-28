@@ -5,3 +5,5 @@
 - [SSE client disconnect](sse-client-disconnect.md) — abort streaming generations from `res.on("close")`; a `req`-based listener never fires for a POST.
 - [Missing @workspace/* symlink](workspace-package-symlink.md) — after adding a lib export, leaf typecheck may fail to resolve the import; `pnpm install` repairs the symlink even if "up to date".
 - [Teaching a spoken dialect](dialect-teaching.md) — a dialect needs its own long prompt brief (forbidden standard-variety forms first); a one-line "use the colloquial form" decays after the first reply.
+- [LLM stream failures](llm-stream-failures.md) — provider errors surface while reading the body, not on create(); retry until a real token arrives, and classify before reporting.
+- [Client model choice is spend](client-model-choice.md) — a slug from the browser goes upstream on the server's key; validate against the live free catalogue and fail closed.

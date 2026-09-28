@@ -29,6 +29,7 @@ import type {
   LessonCompletions,
   ListLessonCompletionsParams,
   ListLessonsParams,
+  ModelList,
   OpenaiConversation,
   OpenaiConversationInput,
   OpenaiConversationUpdate,
@@ -644,6 +645,84 @@ export const useSendOpenaiMessage = <TError = ErrorType<unknown>,
       > => {
       return useMutation(getSendOpenaiMessageMutationOptions(options));
     }
+
+export const getListModelsUrl = () => {
+
+
+
+
+  return `/api/models`
+}
+
+/**
+ * The free models currently served by the provider, refreshed from upstream. Free model slugs are retired and rate-limited without notice, so this list changes over time.
+ * @summary Models the tutor can answer with
+ */
+export const listModels = async ( options?: RequestInit): Promise<ModelList> => {
+
+  return customFetch<ModelList>(getListModelsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListModelsQueryKey = () => {
+    return [
+    `/api/models`
+    ] as const;
+    }
+
+
+export const getListModelsQueryOptions = <TData = Awaited<ReturnType<typeof listModels>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listModels>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListModelsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listModels>>> = ({ signal }) => listModels({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listModels>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListModelsQueryResult = NonNullable<Awaited<ReturnType<typeof listModels>>>
+export type ListModelsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Models the tutor can answer with
+ */
+
+export function useListModels<TData = Awaited<ReturnType<typeof listModels>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listModels>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListModelsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
 
 export const getGetProgressTodayUrl = (params?: GetProgressTodayParams,) => {
   const normalizedParams = new URLSearchParams();

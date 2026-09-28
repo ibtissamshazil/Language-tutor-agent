@@ -127,10 +127,30 @@ export const SendOpenaiMessageParams = zod.object({
 
 export const sendOpenaiMessageBodyContentMax = 4000;
 
+export const sendOpenaiMessageBodyModelMax = 200;
+
 
 
 export const SendOpenaiMessageBody = zod.object({
-  "content": zod.string().min(1).max(sendOpenaiMessageBodyContentMax)
+  "content": zod.string().min(1).max(sendOpenaiMessageBodyContentMax),
+  "model": zod.string().max(sendOpenaiMessageBodyModelMax).optional().describe('Preferred model slug to answer with. Tried first; the server falls back to its own chain when this model is unavailable. Omit (or send \"auto\") to let the server choose.')
+})
+
+
+/**
+ * The free models currently served by the provider, refreshed from upstream. Free model slugs are retired and rate-limited without notice, so this list changes over time.
+ * @summary Models the tutor can answer with
+ */
+export const ListModelsResponse = zod.object({
+  "models": zod.array(zod.object({
+  "id": zod.string().describe('Model slug to send back as OpenaiMessageInput.model'),
+  "name": zod.string().describe('Human-readable model name'),
+  "contextLength": zod.number().optional().describe('Context window in tokens'),
+  "recommended": zod.boolean().describe('Verified to follow the tutor\'s teaching format well'),
+  "note": zod.string().optional().describe('Short caveat shown next to the model, when there is one')
+})),
+  "autoOrder": zod.array(zod.string()).describe('The slugs the server tries, in order, when set to auto'),
+  "locked": zod.boolean().describe('True when the server pins a model via the OPENROUTER_MODEL env var or is not using OpenRouter at all, so a choice has no effect.')
 })
 
 

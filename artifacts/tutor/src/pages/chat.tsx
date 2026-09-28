@@ -3,6 +3,7 @@ import { useRoute, useLocation } from "wouter";
 import { useChat } from "@/hooks/use-chat";
 import { ChatMessage } from "@/components/chat-message";
 import { LanguageChangeHint } from "@/components/language-change-hint";
+import { ChatErrorNotice } from "@/components/chat-error-notice";
 import { useGoalCelebration } from "@/hooks/use-goal-celebration";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -89,11 +90,7 @@ export default function ChatPage() {
           <ChatMessage key={msg.id} message={msg} language={effectiveLanguage} />
         ))}
 
-        {error && (
-          <div className="mx-auto max-w-md rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-center text-sm text-destructive">
-            {error}
-          </div>
-        )}
+        {error && <ChatErrorNotice error={error} />}
       </div>
 
       <div className="p-4 sm:p-6 bg-background/80 backdrop-blur-sm border-t border-border shrink-0">

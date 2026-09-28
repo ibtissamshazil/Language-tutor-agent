@@ -4,6 +4,7 @@ import openaiRouter from "./openai";
 import lessonsRouter from "./lessons";
 import lessonCompletionsRouter from "./lesson-completions";
 import progressRouter from "./progress";
+import modelsRouter from "./models";
 
 const router: IRouter = Router();
 
@@ -12,5 +13,6 @@ router.use("/openai", openaiRouter);
 router.use(lessonsRouter);
 router.use("/lesson-completions", lessonCompletionsRouter);
 router.use("/progress", progressRouter);
+router.use(modelsRouter);
 
 export default router;

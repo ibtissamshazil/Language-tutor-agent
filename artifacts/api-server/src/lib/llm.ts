@@ -84,12 +84,43 @@ export const llm: OpenAI = createClient();
  * stronger model for harder scripts) leads, followed by the shared fallback
  * chain. The Replit fallback provider always uses its single capable model.
  */
-export function resolveModels(language: LanguageDef): string[] {
+export function resolveModels(
+  language: LanguageDef,
+  requested?: string | null,
+): string[] {
   if (!usingOpenRouter) return [OPENAI_MODEL];
   if (OPENROUTER_MODEL_OVERRIDE) return [OPENROUTER_MODEL_OVERRIDE];
   const preferred = language.model?.openRouter;
-  const chain = preferred
-    ? [preferred, ...OPENROUTER_FALLBACK_MODELS]
-    : [...OPENROUTER_FALLBACK_MODELS];
+  // A model the student picked in Settings leads, but never alone: free slugs
+  // die without notice, and a dead choice must degrade to a working tutor
+  // rather than to an error. "auto" means "no opinion, use the usual order".
+  const chosen = requested && requested !== AUTO_MODEL ? [requested] : [];
+  const chain = [
+    ...chosen,
+    ...(preferred ? [preferred] : []),
+    ...OPENROUTER_FALLBACK_MODELS,
+  ];
   return Array.from(new Set(chain));
 }
+
+/** Sentinel the client sends when the student has not picked a model. */
+export const AUTO_MODEL = "auto";
+
+/** The order tried when no model is picked, for display in Settings. */
+export function autoModelOrder(): string[] {
+  if (!usingOpenRouter) return [OPENAI_MODEL];
+  if (OPENROUTER_MODEL_OVERRIDE) return [OPENROUTER_MODEL_OVERRIDE];
+  return [...OPENROUTER_FALLBACK_MODELS];
+}
+
+/** True when picking a model cannot change anything. */
+export const modelChoiceLocked =
+  !usingOpenRouter || Boolean(OPENROUTER_MODEL_OVERRIDE);
+
+/** Slugs verified to teach in the tutor's format, with any caveat to show. */
+export const MODEL_NOTES: Record<string, string> = {
+  "nvidia/nemotron-3-ultra-550b-a55b:free": "",
+  "nvidia/nemotron-3-super-120b-a12b:free": "Sometimes shows its own notes",
+  "google/gemma-4-31b-it:free": "Often busy",
+  "qwen/qwen3.8-27b:free": "Often busy",
+};

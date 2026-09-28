@@ -16,6 +16,8 @@ tags:
     description: Beginner lesson content per language
   - name: lesson-completions
     description: Per-language lesson completion tracking
+  - name: models
+    description: Models available to answer with
 paths:
   /healthz:
     get:
@@ -174,6 +176,22 @@ paths:
           description: SSE stream of assistant text chunks
           content:
             text/event-stream: {}
+  /models:
+    get:
+      operationId: listModels
+      tags: [models]
+      summary: Models the tutor can answer with
+      description: >-
+        The free models currently served by the provider, refreshed from
+        upstream. Free model slugs are retired and rate-limited without notice,
+        so this list changes over time.
+      responses:
+        "200":
+          description: Available models
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModelList"
   /progress/today:
     get:
       operationId: getProgressToday
@@ -400,8 +418,58 @@ components:
           type: string
           minLength: 1
           maxLength: 4000
+        model:
+          type: string
+          maxLength: 200
+          description: >-
+            Preferred model slug to answer with. Tried first; the server falls
+            back to its own chain when this model is unavailable. Omit (or send
+            "auto") to let the server choose.
       required:
         - content
+    ModelOption:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Model slug to send back as OpenaiMessageInput.model
+        name:
+          type: string
+          description: Human-readable model name
+        contextLength:
+          type: integer
+          description: Context window in tokens
+        recommended:
+          type: boolean
+          description: Verified to follow the tutor's teaching format well
+        note:
+          type: string
+          description: Short caveat shown next to the model, when there is one
+      required:
+        - id
+        - name
+        - recommended
+    ModelList:
+      type: object
+      properties:
+        models:
+          type: array
+          items:
+            $ref: "#/components/schemas/ModelOption"
+        autoOrder:
+          type: array
+          description: The slugs the server tries, in order, when set to auto
+          items:
+            type: string
+        locked:
+          type: boolean
+          description: >-
+            True when the server pins a model via the OPENROUTER_MODEL env var
+            or is not using OpenRouter at all, so a choice has no effect.
+      required:
+        - models
+        - autoOrder
+        - locked
     OpenaiConversationWithMessages:
       type: object
       properties:

@@ -12,4 +12,9 @@ export interface OpenaiMessageInput {
      * @maxLength 4000
      */
   content: string;
+  /**
+     * Preferred model slug to answer with. Tried first; the server falls back to its own chain when this model is unavailable. Omit (or send "auto") to let the server choose.
+     * @maxLength 200
+     */
+  model?: string;
 }

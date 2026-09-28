@@ -1,4 +1,4 @@
-import { Router, type IRouter } from "express";
+import { Router, type IRouter, type Response } from "express";
 import { eq, asc, desc, and, gte } from "drizzle-orm";
 import { db, conversations, messages } from "@workspace/db";
 import {
@@ -14,10 +14,63 @@ import {
   type LanguageDef,
   type LevelDef,
 } from "@workspace/languages";
-import { llm, resolveModels, usingOpenRouter } from "../lib/llm";
+import { AUTO_MODEL, llm, resolveModels, usingOpenRouter } from "../lib/llm";
+import {
+  isSelectableModel,
+  modelDisplayName,
+  restrictToFreeModels,
+} from "../lib/model-catalog";
+import {
+  describeLlmError,
+  summarizeFailures,
+  type Attempt,
+  type LlmErrorInfo,
+} from "../lib/llm-errors";
 import { startOfToday, summarizeProgress } from "../lib/progress";
 
 const router: IRouter = Router();
+
+/**
+ * End an SSE stream with a structured error.
+ *
+ * `error` stays a plain string so any client reading the old shape still gets
+ * a readable sentence; the extra fields let the UI offer the right next step
+ * (wait and retry, or go change the model).
+ */
+/**
+ * A model that opened a stream and then said nothing.
+ *
+ * Thrown inside the candidate loop so an empty answer is treated the same as a
+ * failure to start — the next model gets a turn, instead of the student being
+ * shown a blank reply from a model that happened to be first in the chain.
+ */
+class EmptyStreamError extends Error {
+  constructor(readonly model: string) {
+    super(`${model} produced no content`);
+    this.name = "EmptyStreamError";
+  }
+}
+
+/** One OpenAI-compatible streaming delta, in the only shape this route reads. */
+interface StreamChunk {
+  choices?: { delta?: { content?: string | null }; finish_reason?: string | null }[];
+}
+
+function sendStreamError(res: Response, info: LlmErrorInfo): void {
+  // Writing to a response whose socket is already gone throws on some Node
+  // versions and is pointless on all of them.
+  if (res.writableEnded || res.destroyed || !res.writable) return;
+  res.write(
+    `data: ${JSON.stringify({
+      error: info.message,
+      errorCode: info.code,
+      retryAfterSeconds: info.retryAfterSeconds,
+      suggestModelChange: info.suggestModelChange,
+      retryable: info.retryable,
+    })}\n\n`,
+  );
+  res.end();
+}
 
 // Build the tutor system prompt for a specific target language. The taught-term
 // markup ([[native|transliteration|english]]) is what the progress scorer and
@@ -310,18 +363,43 @@ router.post("/conversations/:id/messages", async (req, res) => {
   res.on("close", onClientGone);
 
   let fullResponse = "";
+  // The model that actually opened the stream, so a later failure can name it.
+  let usedModel: string | undefined;
+  // Set once the assistant reply is in the database, so the error path can
+  // tell the student the truth about whether their partial lesson was kept —
+  // and never insert the same reply twice.
+  let persisted = false;
+  let iterator: AsyncIterator<StreamChunk> | undefined;
+  // Chunks consumed while checking that the model actually produces tokens;
+  // they still have to reach the student.
+  let prelude: StreamChunk[] = [];
   try {
     // Free models are routinely retired, flipped to paid, or rate-limited, so
     // walk the candidate chain until one actually opens a stream. Only the
     // initial create() call is retried — once tokens are flowing we are
     // committed to that model, and a mid-stream failure falls through to the
     // error handler below.
-    const candidates = resolveModels(language);
-    let stream: Awaited<ReturnType<typeof llm.chat.completions.create>> | undefined;
-    let lastErr: unknown;
+    // The requested slug comes from the browser and is sent upstream under the
+    // account's API key, so it is checked against the free catalogue before
+    // being used. An unknown or paid slug is dropped (not rejected): the point
+    // is to teach a language, and the automatic chain does that fine.
+    const asked =
+      parsed.data.model && parsed.data.model !== AUTO_MODEL ? parsed.data.model : undefined;
+    const requestedModel = asked && (await isSelectableModel(asked)) ? asked : undefined;
+    if (asked && !requestedModel) {
+      req.log.warn({ model: asked }, "Ignoring model that is not in the free catalogue");
+    }
+    // Every candidate is price-checked, not just the requested one: the
+    // curated chain is static, and a slug on it can be flipped to paid
+    // between deploys.
+    const candidates = await restrictToFreeModels(resolveModels(language, requestedModel));
+    // Every candidate's failure is kept, not just the last one: with a fallback
+    // chain the useful explanation is usually the first model's (the one the
+    // student picked), while the last is just "the final backup was busy too".
+    const failures: Attempt[] = [];
     for (const model of candidates) {
       try {
-        stream = await llm.chat.completions.create(
+        const candidateStream = await llm.chat.completions.create(
           {
             model,
             // gpt-5.4 (Replit proxy) needs max_completion_tokens; OpenRouter
@@ -334,60 +412,143 @@ router.post("/conversations/:id/messages", async (req, res) => {
           },
           { signal: abortController.signal },
         );
+
+        // Read ahead to the first real token here, inside the retry loop.
+        // create() resolving does not mean the model accepted the request:
+        // OpenRouter routes to the upstream provider lazily, so a rate limit
+        // or a dead provider surfaces while reading the body — and often not
+        // on the very first chunk, which is usually an empty role delta. As
+        // long as no token has been sent to the student, a failure is still a
+        // failure to START, and must fall through to the next candidate.
+        const candidateIterator = (candidateStream as AsyncIterable<StreamChunk>)[
+          Symbol.asyncIterator
+        ]();
+        const buffered: StreamChunk[] = [];
+        let gotContent = false;
+        for (let step = await candidateIterator.next(); !step.done; step = await candidateIterator.next()) {
+          buffered.push(step.value);
+          if (step.value.choices?.[0]?.delta?.content) {
+            gotContent = true;
+            break;
+          }
+        }
+        // A stream that ends having said nothing is a failed attempt, not an
+        // answer: fall through to the next model rather than showing the
+        // student an empty bubble.
+        if (!gotContent) throw new EmptyStreamError(model);
+
+        prelude = buffered;
+        iterator = candidateIterator;
+        usedModel = model;
         req.log.info({ model, language: language.code }, "Generating with model");
         break;
       } catch (err) {
         if (clientDisconnected) throw err;
-        lastErr = err;
+        const info = describeLlmError(err, model);
+        failures.push({ model, info, chosen: model === requestedModel });
         req.log.warn(
-          { model, status: (err as { status?: number })?.status },
+          { model, status: info.status, reason: info.code },
           "Model unavailable, trying next candidate",
         );
       }
     }
-    if (!stream) throw lastErr ?? new Error("No model available");
+    if (!iterator) {
+      sendStreamError(res, summarizeFailures(failures));
+      return;
+    }
 
-    for await (const chunk of stream as AsyncIterable<{
-      choices: { delta?: { content?: string | null } }[];
-    }>) {
-      const content = chunk.choices[0]?.delta?.content;
+    // Whether the model said it was finished. A stream that just stops — the
+    // provider dropping the connection mid-sentence — looks exactly like a
+    // completed one otherwise, and the student would be shown half a lesson
+    // as if it were the whole thing.
+    let finishReason: string | null | undefined;
+    const emit = (chunk: StreamChunk) => {
+      const choice = chunk.choices?.[0];
+      if (choice?.finish_reason) finishReason = choice.finish_reason;
+      const content = choice?.delta?.content;
       if (content) {
         fullResponse += content;
         res.write(`data: ${JSON.stringify({ content })}\n\n`);
       }
+    };
+    // The chunks read while deciding the model is alive come first.
+    for (const chunk of prelude) emit(chunk);
+    for (let step = await iterator.next(); !step.done; step = await iterator.next()) {
+      emit(step.value);
     }
 
-    if (fullResponse.length > 0) {
+    try {
       await db.insert(messages).values({
         conversationId: id,
         role: "assistant",
         content: fullResponse,
       });
-    }
-
-    res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
-    res.end();
-  } catch (err) {
-    if (clientDisconnected) {
-      // Persist whatever was generated before the client left, then stop.
-      if (fullResponse.length > 0) {
-        await db
-          .insert(messages)
-          .values({ conversationId: id, role: "assistant", content: fullResponse })
-          .catch(() => undefined);
-      }
+      persisted = true;
+    } catch (dbErr) {
+      // The lesson was generated and the student has read it, but it is not in
+      // the history. That is a storage problem, not a model problem, and is
+      // reported as itself rather than as a truncated reply — and the insert
+      // is NOT retried in the catch below, where a commit that failed
+      // ambiguously could produce a duplicate.
+      req.log.error({ err: dbErr, conversationId: id }, "Failed to save assistant reply");
+      sendStreamError(res, {
+        code: "save_failed",
+        message:
+          "The tutor answered, but saving the reply to this conversation couldn't be confirmed — it may not be here after a reload. Send your message again if it's missing.",
+        suggestModelChange: false,
+        retryable: true,
+      });
       return;
     }
-    req.log.error({ err }, "Failed to stream chat completion");
-    if (!res.writableEnded) {
-      const status = (err as { status?: number })?.status;
-      const errorMessage =
-        status === 429
-          ? "The free model is busy right now (rate limited). Please wait a few seconds and try again."
-          : "Failed to generate a reply";
-      res.write(`data: ${JSON.stringify({ error: errorMessage })}\n\n`);
-      res.end();
+
+    // The reply is saved either way; `truncated` only tells the client to
+    // mention that there is more to come. "length" means the model ran into
+    // its token budget, a missing reason means the provider simply stopped.
+    const truncated = finishReason === "length" || finishReason == null;
+    if (truncated) {
+      req.log.warn({ model: usedModel, finishReason }, "Reply ended without a clean finish");
     }
+    res.write(`data: ${JSON.stringify({ done: true, ...(truncated ? { truncated: true } : {}) })}\n\n`);
+    res.end();
+  } catch (err) {
+    // Save whatever was generated before the failure — a half-finished lesson
+    // is still worth keeping — but only if the successful path had not already
+    // stored it (a failing insert lands here too, and must not be retried into
+    // a duplicate row).
+    let savedPartial = persisted;
+    if (!persisted && fullResponse.length > 0) {
+      savedPartial = await db
+        .insert(messages)
+        .values({ conversationId: id, role: "assistant", content: fullResponse })
+        .then(() => true)
+        .catch(() => false);
+    }
+
+    if (clientDisconnected) return;
+
+    const info = describeLlmError(err, usedModel);
+    req.log.error({ err, reason: info.code, model: usedModel }, "Failed to stream chat completion");
+
+    // A failure after tokens were already flowing is a different event from a
+    // failure to start: the student has half an answer on screen. Say it was
+    // cut short — and say honestly whether the part they can see survived —
+    // instead of reporting the raw provider error for a reply that visibly
+    // started fine.
+    if (fullResponse.length > 0) {
+      const keptNote = savedPartial
+        ? "The part you can see is saved — send your message again to get the rest"
+        : "That part could not be saved — send your message again";
+      sendStreamError(res, {
+        ...info,
+        code: "interrupted",
+        message: `${modelDisplayName(usedModel ?? "the model")} stopped part-way through this reply. ${keptNote}, or pick a different model in Settings.`,
+        suggestModelChange: true,
+        retryable: true,
+      });
+      return;
+    }
+
+    sendStreamError(res, info);
   }
 });
 

@@ -16,6 +16,8 @@ export * from './lessonCompletions';
 export * from './lessonPhrase';
 export * from './listLessonCompletionsParams';
 export * from './listLessonsParams';
+export * from './modelList';
+export * from './modelOption';
 export * from './openaiConversation';
 export * from './openaiConversationInput';
 export * from './openaiConversationUpdate';
