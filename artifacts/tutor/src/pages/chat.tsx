@@ -123,44 +123,40 @@ export default function ChatPage() {
       </div>
 
       <div className="p-4 sm:p-6 bg-background/80 backdrop-blur-sm border-t border-border shrink-0">
+        {switchNote && (
+          <p className="max-w-4xl mx-auto mb-2 px-1 text-xs text-muted-foreground">
+            {switchNote}
+          </p>
+        )}
         <form
           onSubmit={handleSubmit}
-          className="max-w-4xl mx-auto rounded-2xl border border-card-border bg-card shadow-sm transition-shadow focus-within:ring-1 focus-within:ring-primary"
+          className="max-w-4xl mx-auto flex items-center gap-2 rounded-2xl border border-card-border bg-card px-2 py-1.5 shadow-sm transition-shadow focus-within:ring-1 focus-within:ring-primary"
         >
+          <ModelSelect
+            value={model}
+            onChange={chooseModel}
+            models={modelList.models}
+            disabled={modelList.locked}
+            isLoading={modelList.isLoading}
+            compact
+          />
           <Textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Type your message..."
-            className="min-h-[52px] w-full resize-none border-0 bg-transparent px-4 pt-3.5 pb-1 text-base shadow-none focus-visible:ring-0"
+            className="min-h-[40px] max-h-40 flex-1 resize-none border-0 bg-transparent px-1 py-2 text-base shadow-none focus-visible:ring-0"
             rows={1}
             disabled={isStreaming}
           />
-          <div className="flex items-center justify-between gap-2 px-2.5 pb-2.5">
-            <div className="flex min-w-0 items-center gap-2">
-              <ModelSelect
-                value={model}
-                onChange={chooseModel}
-                models={modelList.models}
-                disabled={modelList.locked}
-                isLoading={modelList.isLoading}
-                compact
-              />
-              {switchNote && (
-                <span className="hidden truncate text-xs text-muted-foreground sm:inline">
-                  {switchNote}
-                </span>
-              )}
-            </div>
-            <Button
-              type="submit"
-              size="icon"
-              disabled={!input.trim() || isStreaming}
-              className="h-9 w-9 shrink-0 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
-            >
-              <SendHorizontal className="h-5 w-5" />
-            </Button>
-          </div>
+          <Button
+            type="submit"
+            size="icon"
+            disabled={!input.trim() || isStreaming}
+            className="h-9 w-9 shrink-0 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+          >
+            <SendHorizontal className="h-5 w-5" />
+          </Button>
         </form>
       </div>
     </div>
