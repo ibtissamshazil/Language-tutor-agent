@@ -26,18 +26,38 @@ export function useChat(
   const [messages, setMessages] = useState<OpenaiMessage[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const activeConversationIdRef = useRef<number | undefined>(conversationId);
+  // The conversation a reply is streaming into, or undefined when idle. A ref
+  // (not state) because the sync effect below has to see it within the same
+  // commit that a send starts, not on the next render.
+  const streamingConversationIdRef = useRef<number | undefined>(undefined);
 
   useEffect(() => {
     activeConversationIdRef.current = conversationId;
   }, [conversationId]);
 
   useEffect(() => {
+    // Never let a server snapshot overwrite the conversation being streamed
+    // into. Sending the first message of a brand-new chat mounts this query for
+    // the first time, and its response can land mid-stream — wiping the
+    // optimistic user message and the typing placeholder, so the screen sits
+    // empty until the whole reply arrives at once.
+    //
+    // The guard is scoped to the streaming conversation: navigating to a
+    // different chat (or to a new one) while a reply is still arriving must
+    // still load that chat, or the previous conversation's messages would
+    // linger under it. `isStreaming` is in the deps so the sync runs again the
+    // moment streaming ends, even if the refetched data is unchanged.
+    const isViewingTheStream =
+      streamingConversationIdRef.current !== undefined &&
+      streamingConversationIdRef.current === activeConversationIdRef.current;
+    if (isViewingTheStream) return;
+
     if (conversationData?.messages) {
       setMessages(conversationData.messages);
     } else if (!conversationId) {
       setMessages([]);
     }
-  }, [conversationData, conversationId]);
+  }, [conversationData, conversationId, isStreaming]);
 
   const [error, setError] = useState<string | null>(null);
 
@@ -82,6 +102,7 @@ export function useChat(
         }
       }
 
+      streamingConversationIdRef.current = targetConversationId;
       setIsStreaming(true);
 
       // Add empty assistant message
@@ -109,9 +130,14 @@ export function useChat(
         }
         if (chunk.content) {
           received = true;
-          setMessages(prev => prev.map(m =>
-            m.id === tempAssistantId ? { ...m, content: m.content + chunk.content } : m
-          ));
+          // Only paint into the view if this conversation is still the one on
+          // screen. The reply keeps streaming to the server-side record either
+          // way; the user just sees it when they come back to this chat.
+          if (activeConversationIdRef.current === targetConversationId) {
+            setMessages(prev => prev.map(m =>
+              m.id === tempAssistantId ? { ...m, content: m.content + chunk.content } : m
+            ));
+          }
         }
         if (chunk.done) {
           break;
@@ -122,18 +148,30 @@ export function useChat(
         throw new Error(streamError ?? "The tutor did not return a reply.");
       }
 
-      queryClient.invalidateQueries({ queryKey: getGetOpenaiConversationQueryKey(targetConversationId) });
+      // Awaited so the persisted messages are in the cache BEFORE the guard
+      // above is lifted — otherwise the view briefly falls back to the
+      // pre-send snapshot and the reply flickers out and back in.
+      await queryClient.invalidateQueries({
+        queryKey: getGetOpenaiConversationQueryKey(targetConversationId),
+      });
       queryClient.invalidateQueries({ queryKey: getListOpenaiConversationsQueryKey() });
       queryClient.invalidateQueries({ queryKey: getGetProgressTodayQueryKey() });
 
     } catch (e) {
-      rollback();
-      setError(e instanceof Error ? e.message : "Something went wrong. Please try again.");
+      const stillViewing = activeConversationIdRef.current === targetConversationId;
+      if (stillViewing) {
+        rollback();
+        setError(e instanceof Error ? e.message : "Something went wrong. Please try again.");
+      }
       if (targetConversationId) {
-        // Reconcile with whatever the server actually persisted.
-        queryClient.invalidateQueries({ queryKey: getGetOpenaiConversationQueryKey(targetConversationId) });
+        // Reconcile with whatever the server actually persisted — the user
+        // message is usually saved even when the reply fails.
+        await queryClient
+          .invalidateQueries({ queryKey: getGetOpenaiConversationQueryKey(targetConversationId) })
+          .catch(() => undefined);
       }
     } finally {
+      streamingConversationIdRef.current = undefined;
       setIsStreaming(false);
     }
   };
