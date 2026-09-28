@@ -65,7 +65,10 @@ export function ModelSelect({
   className,
 }: ModelSelectProps) {
   const recommended = models.filter((m) => m.recommended);
-  const others = models.filter((m) => !m.recommended);
+  // The chat bar offers only the models this tutor has been tested with: a
+  // quick switch mid-lesson shouldn't be able to land on a model that ignores
+  // the lesson format. The full catalogue stays in Settings.
+  const others = compact ? [] : models.filter((m) => !m.recommended);
   const selected = models.find((m) => m.id === value);
   const label = value === AUTO_MODEL ? "Auto" : (selected?.name ?? value);
 
@@ -85,17 +88,24 @@ export function ModelSelect({
       </SelectTrigger>
       <SelectContent className={compact ? "max-h-80" : undefined}>
         <SelectItem value={AUTO_MODEL}>Auto (recommended)</SelectItem>
-        {recommended.length > 0 && (
-          <SelectGroup>
-            <SelectLabel>Tested with this tutor</SelectLabel>
-            {recommended.map((m) => (
+        {recommended.length > 0 &&
+          (compact ? (
+            recommended.map((m) => (
               <SelectItem key={m.id} value={m.id}>
                 {m.name}
-                {m.note && !compact ? ` — ${m.note}` : ""}
               </SelectItem>
-            ))}
-          </SelectGroup>
-        )}
+            ))
+          ) : (
+            <SelectGroup>
+              <SelectLabel>Tested with this tutor</SelectLabel>
+              {recommended.map((m) => (
+                <SelectItem key={m.id} value={m.id}>
+                  {m.name}
+                  {m.note ? ` — ${m.note}` : ""}
+                </SelectItem>
+              ))}
+            </SelectGroup>
+          ))}
         {others.length > 0 && (
           <SelectGroup>
             <SelectLabel>Other free models (untested)</SelectLabel>
