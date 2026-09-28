@@ -57,6 +57,32 @@ export interface OpenaiMessageInput {
      * @maxLength 4000
      */
   content: string;
+  /**
+     * Preferred model slug to answer with. Tried first; the server falls back to its own chain when this model is unavailable. Omit (or send "auto") to let the server choose.
+     * @maxLength 200
+     */
+  model?: string;
+}
+
+export interface ModelOption {
+  /** Model slug to send back as OpenaiMessageInput.model */
+  id: string;
+  /** Human-readable model name */
+  name: string;
+  /** Context window in tokens */
+  contextLength?: number;
+  /** Verified to follow the tutor's teaching format well */
+  recommended: boolean;
+  /** Short caveat shown next to the model, when there is one */
+  note?: string;
+}
+
+export interface ModelList {
+  models: ModelOption[];
+  /** The slugs the server tries, in order, when set to auto */
+  autoOrder: string[];
+  /** True when the server pins a model via the OPENROUTER_MODEL env var or is not using OpenRouter at all, so a choice has no effect. */
+  locked: boolean;
 }
 
 export interface OpenaiConversationWithMessages {
