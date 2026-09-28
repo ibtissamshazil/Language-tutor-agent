@@ -27,6 +27,7 @@ import {
   type LlmErrorInfo,
 } from "../lib/llm-errors";
 import { startOfToday, summarizeProgress } from "../lib/progress";
+import { compactHistory, toChatTurns } from "../lib/history";
 
 const router: IRouter = Router();
 
@@ -296,6 +297,45 @@ router.post("/conversations/:id/messages", async (req, res) => {
   const language = getLanguage(conversation.language);
   const level = getLevel(conversation.level);
 
+  // Abort the upstream generation if the client disconnects so we don't keep
+  // consuming tokens for a response nobody is reading.
+  //
+  // Listen on the RESPONSE, not the request: `req`'s "close" fires when the
+  // request stream finishes (which for a POST has already happened by the time
+  // we get here), so a req-based listener never sees the disconnect. `res`
+  // "close" fires when the underlying connection goes away — guarded by
+  // `writableEnded` so a normal completed stream is not treated as a drop.
+  const abortController = new AbortController();
+  let clientDisconnected = false;
+  const onClientGone = () => {
+    if (!res.writableEnded) {
+      clientDisconnected = true;
+      abortController.abort();
+    }
+  };
+  // Wired up before the awaited catalogue lookups below: a student who
+  // navigates away during them would otherwise disconnect before anything
+  // was listening, and the server would generate a reply for a dead socket.
+  res.on("close", onClientGone);
+
+  // The requested slug comes from the browser and is sent upstream under the
+  // account's API key, so it is checked against the free catalogue before
+  // being used. An unknown or paid slug is dropped (not rejected): the point
+  // is to teach a language, and the automatic chain does that fine.
+  const asked =
+    parsed.data.model && parsed.data.model !== AUTO_MODEL ? parsed.data.model : undefined;
+  const requestedModel = asked && (await isSelectableModel(asked)) ? asked : undefined;
+  if (asked && !requestedModel) {
+    req.log.warn({ model: asked }, "Ignoring model that is not in the free catalogue");
+  }
+  // Every candidate is price-checked, not just the requested one: the curated
+  // chain is static, and a slug on it can be flipped to paid between deploys.
+  const candidates = await restrictToFreeModels(resolveModels(language, requestedModel));
+
+  // The catalogue lookups above are network calls; if the student gave up
+  // during them there is nobody left to read the reply.
+  if (clientDisconnected) return;
+
   // Build the conversation history for context, capped at the most recent turns.
   //
   // The free models in the fallback chain have context windows as small as 32K
@@ -311,6 +351,14 @@ router.post("/conversations/:id/messages", async (req, res) => {
     .orderBy(desc(messages.createdAt))
     .limit(HISTORY_TURNS);
   const history = recent.reverse();
+
+  // A reply the student asked a DIFFERENT model to write shouldn't be handed
+  // the previous model's transcript: the new model may have a much smaller
+  // context window, and the earlier turns are not its own words. The chat
+  // continues in place — only what the model is shown of it is compacted.
+  const lastAssistantModel = [...history]
+    .reverse()
+    .find((m) => m.role === "assistant" && m.model)?.model;
 
   // Compute today's learning progress IN THIS LANGUAGE so the tutor can react to
   // how close the student is to today's goal. Scope to assistant messages from
@@ -328,39 +376,34 @@ router.post("/conversations/:id/messages", async (req, res) => {
     );
   const progress = summarizeProgress(todaysAssistantMessages.map((m) => m.content));
 
-  const chatMessages = [
-    { role: "system" as const, content: buildSystemPrompt(language, level) },
-    {
-      role: "system" as const,
-      content: progressDirective(progress.points, progress.target, progress.achieved),
-    },
-    ...history.map((m) => ({
-      role: m.role === "assistant" ? ("assistant" as const) : ("user" as const),
-      content: m.content,
-    })),
-  ];
+  // Built per candidate, not once: if the first choice is unavailable the
+  // model that actually answers is a different one, and whether it needs the
+  // transcript or a recap depends on which model that turns out to be.
+  const buildChatMessages = (model: string) => {
+    const changed = Boolean(lastAssistantModel && lastAssistantModel !== model);
+    const { recap, turns, compactedCount } = changed
+      ? compactHistory(history, language)
+      : { recap: undefined, turns: toChatTurns(history), compactedCount: 0 };
+    if (compactedCount > 0) {
+      req.log.info(
+        { from: lastAssistantModel, to: model, compactedCount },
+        "Model changed mid-conversation; continuing with a compacted context",
+      );
+    }
+    return [
+      { role: "system" as const, content: buildSystemPrompt(language, level) },
+      {
+        role: "system" as const,
+        content: progressDirective(progress.points, progress.target, progress.achieved),
+      },
+      ...(recap ? [{ role: "system" as const, content: recap }] : []),
+      ...turns,
+    ];
+  };
 
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
   res.setHeader("Connection", "keep-alive");
-
-  // Abort the upstream generation if the client disconnects so we don't keep
-  // consuming tokens for a response nobody is reading.
-  //
-  // Listen on the RESPONSE, not the request: `req`'s "close" fires when the
-  // request stream finishes (which for a POST has already happened by the time
-  // we get here), so a req-based listener never sees the disconnect. `res`
-  // "close" fires when the underlying connection goes away — guarded by
-  // `writableEnded` so a normal completed stream is not treated as a drop.
-  const abortController = new AbortController();
-  let clientDisconnected = false;
-  const onClientGone = () => {
-    if (!res.writableEnded) {
-      clientDisconnected = true;
-      abortController.abort();
-    }
-  };
-  res.on("close", onClientGone);
 
   let fullResponse = "";
   // The model that actually opened the stream, so a later failure can name it.
@@ -378,21 +421,9 @@ router.post("/conversations/:id/messages", async (req, res) => {
     // walk the candidate chain until one actually opens a stream. Only the
     // initial create() call is retried — once tokens are flowing we are
     // committed to that model, and a mid-stream failure falls through to the
-    // error handler below.
-    // The requested slug comes from the browser and is sent upstream under the
-    // account's API key, so it is checked against the free catalogue before
-    // being used. An unknown or paid slug is dropped (not rejected): the point
-    // is to teach a language, and the automatic chain does that fine.
-    const asked =
-      parsed.data.model && parsed.data.model !== AUTO_MODEL ? parsed.data.model : undefined;
-    const requestedModel = asked && (await isSelectableModel(asked)) ? asked : undefined;
-    if (asked && !requestedModel) {
-      req.log.warn({ model: asked }, "Ignoring model that is not in the free catalogue");
-    }
-    // Every candidate is price-checked, not just the requested one: the
-    // curated chain is static, and a slug on it can be flipped to paid
-    // between deploys.
-    const candidates = await restrictToFreeModels(resolveModels(language, requestedModel));
+    // error handler below. The chain itself was resolved above, because the
+    // history handed to the model depends on which model it is.
+    //
     // Every candidate's failure is kept, not just the last one: with a fallback
     // chain the useful explanation is usually the first model's (the one the
     // student picked), while the last is just "the final backup was busy too".
@@ -407,7 +438,7 @@ router.post("/conversations/:id/messages", async (req, res) => {
             ...(usingOpenRouter
               ? { max_tokens: 8192 }
               : { max_completion_tokens: 8192 }),
-            messages: chatMessages,
+            messages: buildChatMessages(model),
             stream: true,
           },
           { signal: abortController.signal },
@@ -482,6 +513,7 @@ router.post("/conversations/:id/messages", async (req, res) => {
         conversationId: id,
         role: "assistant",
         content: fullResponse,
+        model: usedModel,
       });
       persisted = true;
     } catch (dbErr) {
@@ -519,7 +551,12 @@ router.post("/conversations/:id/messages", async (req, res) => {
     if (!persisted && fullResponse.length > 0) {
       savedPartial = await db
         .insert(messages)
-        .values({ conversationId: id, role: "assistant", content: fullResponse })
+        .values({
+          conversationId: id,
+          role: "assistant",
+          content: fullResponse,
+          model: usedModel,
+        })
         .then(() => true)
         .catch(() => false);
     }

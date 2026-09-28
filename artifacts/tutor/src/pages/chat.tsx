@@ -4,6 +4,9 @@ import { useChat } from "@/hooks/use-chat";
 import { ChatMessage } from "@/components/chat-message";
 import { LanguageChangeHint } from "@/components/language-change-hint";
 import { ChatErrorNotice } from "@/components/chat-error-notice";
+import { ModelSelect, useModelList } from "@/components/model-select";
+import { useModelPreference } from "@/hooks/use-model-preference";
+import { AUTO_MODEL } from "@/lib/model-preference";
 import { useGoalCelebration } from "@/hooks/use-goal-celebration";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -28,6 +31,32 @@ export default function ChatPage() {
   );
   const [input, setInput] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // The model can be swapped from the chat bar without leaving the
+  // conversation: the next reply just comes from the new model, which is
+  // handed a compacted recap of what has been taught so far.
+  const [model, setModel] = useModelPreference();
+  const modelList = useModelList(model);
+  const [switchNote, setSwitchNote] = useState<string | null>(null);
+  const chooseModel = (value: string) => {
+    const previous = model;
+    setModel(value);
+    if (value === previous || messages.length === 0) return;
+    const name =
+      value === AUTO_MODEL
+        ? "the best available model"
+        : (modelList.models.find((m) => m.id === value)?.name ?? value);
+    setSwitchNote(`This chat continues with ${name}.`);
+  };
+  useEffect(() => {
+    if (!switchNote) return;
+    const timer = setTimeout(() => setSwitchNote(null), 6000);
+    return () => clearTimeout(timer);
+  }, [switchNote]);
+  // The note is about the chat it was shown in; opening another one drops it.
+  useEffect(() => {
+    setSwitchNote(null);
+  }, [conversationId]);
 
   // Fire confetti + an auto-dismissing toast the moment today's goal is reached.
   useGoalCelebration(effectiveLanguage.code);
@@ -94,27 +123,44 @@ export default function ChatPage() {
       </div>
 
       <div className="p-4 sm:p-6 bg-background/80 backdrop-blur-sm border-t border-border shrink-0">
-        <form 
+        <form
           onSubmit={handleSubmit}
-          className="relative max-w-4xl mx-auto flex items-end gap-2"
+          className="max-w-4xl mx-auto rounded-2xl border border-card-border bg-card shadow-sm transition-shadow focus-within:ring-1 focus-within:ring-primary"
         >
           <Textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Type your message..."
-            className="min-h-[56px] w-full resize-none rounded-2xl pr-12 py-4 bg-card shadow-sm border-card-border focus-visible:ring-primary text-base"
+            className="min-h-[52px] w-full resize-none border-0 bg-transparent px-4 pt-3.5 pb-1 text-base shadow-none focus-visible:ring-0"
             rows={1}
             disabled={isStreaming}
           />
-          <Button 
-            type="submit" 
-            size="icon"
-            disabled={!input.trim() || isStreaming}
-            className="absolute right-2 bottom-2 h-10 w-10 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
-          >
-            <SendHorizontal className="h-5 w-5" />
-          </Button>
+          <div className="flex items-center justify-between gap-2 px-2.5 pb-2.5">
+            <div className="flex min-w-0 items-center gap-2">
+              <ModelSelect
+                value={model}
+                onChange={chooseModel}
+                models={modelList.models}
+                disabled={modelList.locked}
+                isLoading={modelList.isLoading}
+                compact
+              />
+              {switchNote && (
+                <span className="hidden truncate text-xs text-muted-foreground sm:inline">
+                  {switchNote}
+                </span>
+              )}
+            </div>
+            <Button
+              type="submit"
+              size="icon"
+              disabled={!input.trim() || isStreaming}
+              className="h-9 w-9 shrink-0 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+            >
+              <SendHorizontal className="h-5 w-5" />
+            </Button>
+          </div>
         </form>
       </div>
     </div>

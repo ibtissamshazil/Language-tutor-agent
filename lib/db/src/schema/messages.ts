@@ -11,6 +11,11 @@ export const messages = pgTable("messages", {
     .references(() => conversations.id, { onDelete: "cascade" }),
   role: text("role").notNull(),
   content: text("content").notNull(),
+  // Which model wrote an assistant reply. Null for user messages and for
+  // replies written before this was recorded. Kept so a later send can tell
+  // that the student has switched models and hand the new one a compacted
+  // recap instead of a transcript it never produced.
+  model: text("model"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 

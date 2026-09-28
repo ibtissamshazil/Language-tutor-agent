@@ -79,6 +79,28 @@ export function modelDisplayName(id: string): string {
 // first failure, instead of falling back to a slug-derived guess.
 void listAvailableModels().catch(() => undefined);
 
+/** The account part of a slug: "nvidia/nemotron-3-ultra:free" -> "nvidia". */
+function providerOf(id: string): string {
+  const slash = id.indexOf("/");
+  return (slash === -1 ? id : id.slice(0, slash)).toLowerCase();
+}
+
+/**
+ * Order the picker by provider name, A→Z, then by model name.
+ *
+ * Recommended models still come first as their own group — the UI labels them
+ * — but within each group the order is alphabetical by provider so a student
+ * scanning a long list can find a maker's models together.
+ */
+function sortByProvider(options: ModelOption[]): void {
+  options.sort((a, b) => {
+    if (a.recommended !== b.recommended) return a.recommended ? -1 : 1;
+    const provider = providerOf(a.id).localeCompare(providerOf(b.id));
+    if (provider !== 0) return provider;
+    return a.name.localeCompare(b.name);
+  });
+}
+
 /**
  * Free on EVERY axis the catalogue prices, not just tokens.
  *
@@ -160,14 +182,7 @@ async function refreshCatalog(recommendedIds: Set<string>): Promise<ModelOption[
     stale = true;
   }
 
-  options.sort((a, b) => {
-    if (a.recommended !== b.recommended) return a.recommended ? -1 : 1;
-    if (a.recommended && b.recommended) {
-      // Keep recommended models in the order the server actually tries them.
-      return autoModelOrder().indexOf(a.id) - autoModelOrder().indexOf(b.id);
-    }
-    return a.name.localeCompare(b.name);
-  });
+  sortByProvider(options);
 
   cache = { at: Date.now(), models: options, stale };
   return options;

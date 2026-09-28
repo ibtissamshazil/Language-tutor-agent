@@ -1,21 +1,15 @@
-import { useState } from "react";
 import { LANGUAGES, LEVELS } from "@workspace/languages";
-import { useListModels } from "@workspace/api-client-react";
 import { useLanguage } from "@/hooks/use-language";
-import {
-  AUTO_MODEL,
-  getPreferredModel,
-  setPreferredModel,
-} from "@/lib/model-preference";
+import { AUTO_MODEL } from "@/lib/model-preference";
+import { useModelPreference } from "@/hooks/use-model-preference";
+import { ModelSelect, useModelList } from "@/components/model-select";
 import { LanguageSelect } from "@/components/language-select";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useTheme } from "@/hooks/use-theme";
 import {
   Select,
   SelectContent,
-  SelectGroup,
   SelectItem,
-  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -26,20 +20,22 @@ export default function SettingsPage() {
 
   const activeLanguage = LANGUAGES.find((l) => l.code === code);
 
-  const [model, setModel] = useState(getPreferredModel);
-  const { data: modelData, isLoading: isLoadingModels } = useListModels();
-  const models = modelData?.models ?? [];
-  const recommended = models.filter((m) => m.recommended);
-  const others = models.filter((m) => !m.recommended);
-  const selected = models.find((m) => m.id === model);
-  // A previously picked model that upstream has since retired is no longer in
-  // the list; say so rather than showing an empty select.
-  const selectionMissing = model !== AUTO_MODEL && !selected && !isLoadingModels;
-
-  const chooseModel = (value: string) => {
-    setModel(value);
-    setPreferredModel(value);
-  };
+  // Shared with the picker in the chat bar: changing the model in either
+  // place updates both, and neither one starts a new conversation.
+  const [model, chooseModel] = useModelPreference();
+  const {
+    models,
+    selected,
+    autoOrder,
+    locked,
+    isLoading: isLoadingModels,
+    // A previously picked model that upstream has since retired is no longer
+    // in the list; say so rather than showing an empty select.
+    missing: selectionMissing,
+  } = useModelList(model);
+  // The picker is ordered by provider name, so the first tested entry is not
+  // the first one the server tries — name the head of the real chain instead.
+  const firstAutoModel = models.find((m) => m.id === autoOrder[0]);
 
   const formatContext = (tokens?: number) =>
     tokens ? `${Math.round(tokens / 1000)}K context` : undefined;
@@ -115,41 +111,15 @@ export default function SettingsPage() {
               works.
             </p>
           </div>
-          <Select
+          <ModelSelect
             value={model}
-            onValueChange={chooseModel}
-            disabled={modelData?.locked || isLoadingModels}
-          >
-            <SelectTrigger className="w-full" aria-label="Choose AI model">
-              <SelectValue placeholder={isLoadingModels ? "Loading models…" : "Auto"} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={AUTO_MODEL}>Auto (recommended)</SelectItem>
-              {recommended.length > 0 && (
-                <SelectGroup>
-                  <SelectLabel>Tested with this tutor</SelectLabel>
-                  {recommended.map((m) => (
-                    <SelectItem key={m.id} value={m.id}>
-                      {m.name}
-                      {m.note ? ` — ${m.note}` : ""}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              )}
-              {others.length > 0 && (
-                <SelectGroup>
-                  <SelectLabel>Other free models (untested)</SelectLabel>
-                  {others.map((m) => (
-                    <SelectItem key={m.id} value={m.id}>
-                      {m.name}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              )}
-            </SelectContent>
-          </Select>
+            onChange={chooseModel}
+            models={models}
+            disabled={locked}
+            isLoading={isLoadingModels}
+          />
           <p className="text-xs text-muted-foreground">
-            {modelData?.locked
+            {locked
               ? "The model is fixed by this server's configuration, so it can't be changed here."
               : selectionMissing
                 ? `${model} is no longer offered. The tutor is using Auto until you pick another.`
@@ -164,7 +134,7 @@ export default function SettingsPage() {
                       .filter(Boolean)
                       .join(" · ")
                   : `Trying the tested models in order, starting with ${
-                      recommended[0]?.name ?? "the best available one"
+                      firstAutoModel?.name ?? "the best available one"
                     }.`}
           </p>
         </section>
