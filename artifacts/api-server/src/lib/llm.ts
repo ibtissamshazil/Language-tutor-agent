@@ -25,11 +25,19 @@ const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 //
 // Do NOT use the `openrouter/free` auto-router here: it can route a request to a
 // classifier or code-only model that answers with something unusable.
+// Order matters twice over: the chain only advances when a model FAILS to open
+// a stream, never when it answers badly, so the best instruction-follower has
+// to come first. Verified by probing each slug with the real teaching prompt
+// (2026-09-28) — the two previous leaders now 404, and several free models
+// either leak their chain-of-thought into the reply or return empty content.
 const OPENROUTER_FALLBACK_MODELS = [
-  "inclusionai/ling-3.0-flash-vl:free",
-  "z-ai/glm-5.2:free",
-  "google/gemma-4-31b-it:free",
+  // Clean prose, keeps the [[term]] / {{sentence}} markup, holds the dialect.
+  "nvidia/nemotron-3-ultra-550b-a55b:free",
+  // Usable, but leaks visible reasoning ("We need to teach...") on some turns.
   "nvidia/nemotron-3-super-120b-a12b:free",
+  // Solid when its provider is not rate-limiting (429s are common).
+  "google/gemma-4-31b-it:free",
+  "qwen/qwen3.8-27b:free",
 ];
 
 // Global escape hatch: when set, this overrides EVERY language's model. Useful
