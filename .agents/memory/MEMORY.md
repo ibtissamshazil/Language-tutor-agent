@@ -7,3 +7,4 @@
 - [Teaching a spoken dialect](dialect-teaching.md) — a dialect needs its own long prompt brief (forbidden standard-variety forms first); a one-line "use the colloquial form" decays after the first reply.
 - [LLM stream failures](llm-stream-failures.md) — provider errors surface while reading the body, not on create(); retry until a real token arrives, and classify before reporting.
 - [Client model choice is spend](client-model-choice.md) — a slug from the browser goes upstream on the server's key; validate against the live free catalogue and fail closed.
+- [Fast Refresh hook-order crash](hmr-hook-order-crash.md) — "Should have a queue" right after editing a hooks file is stale HMR state; reload before debugging the component it blames.
