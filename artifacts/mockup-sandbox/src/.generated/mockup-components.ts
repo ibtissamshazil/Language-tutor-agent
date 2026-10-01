@@ -5,5 +5,6 @@ export const modules: ModuleMap = {
   "./components/mockups/learning-indicator/GlyphAvatar.tsx": () => import("../components/mockups/learning-indicator/GlyphAvatar.tsx"),
   "./components/mockups/learning-indicator/MinimalPill.tsx": () => import("../components/mockups/learning-indicator/MinimalPill.tsx"),
   "./components/mockups/learning-indicator/NativeImmersive.tsx": () => import("../components/mockups/learning-indicator/NativeImmersive.tsx"),
-  "./components/mockups/learning-indicator/ProgressBadge.tsx": () => import("../components/mockups/learning-indicator/ProgressBadge.tsx")
+  "./components/mockups/learning-indicator/ProgressBadge.tsx": () => import("../components/mockups/learning-indicator/ProgressBadge.tsx"),
+  "./components/mockups/language-followup/FollowupStudy.tsx": () => import("../components/mockups/language-followup/FollowupStudy.tsx")
 };
