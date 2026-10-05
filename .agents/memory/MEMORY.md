@@ -9,3 +9,4 @@
 - [Client model choice is spend](client-model-choice.md) — a slug from the browser goes upstream on the server's key; validate against the live free catalogue and fail closed.
 - [Fast Refresh hook-order crash](hmr-hook-order-crash.md) — "Should have a queue" right after editing a hooks file is stale HMR state; reload before debugging the component it blames.
 - [GitHub push without a token](github-push-no-token.md) — the GitHub connector gives Octokit but no raw credential; `git push` over HTTPS can't be authenticated from the sandbox.
+- [Sign-in methods](sign-in-methods.md) — email codes are the default; passwords belong under “Sign in using another method.”
