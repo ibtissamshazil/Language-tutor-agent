@@ -87,3 +87,11 @@
     @apply font-sans antialiased bg-background text-foreground;
   }
 }
+
+.study-idea-rail {
+  scrollbar-width: none;
+}
+
+.study-idea-rail::-webkit-scrollbar {
+  display: none;
+}

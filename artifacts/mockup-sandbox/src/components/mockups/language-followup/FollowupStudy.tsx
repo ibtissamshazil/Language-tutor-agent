@@ -2,9 +2,7 @@ import { useState } from "react";
 import {
   ArrowRight,
   BookOpen,
-  Check,
   ChevronDown,
-  Globe2,
   MessageSquare,
   Plus,
   RefreshCw,
@@ -16,60 +14,131 @@ import {
 import "./_group.css";
 
 type StudyIdea = {
-  scope: string;
+  id: string;
   title: string;
   detail: string;
   prompt: string;
-  icon: "chat" | "language";
 };
 
-const ideaSets: StudyIdea[][] = [
+// Change this one value to tune when returning learners start seeing review.
+const LEARNED_WORD_REVISION_THRESHOLD = 50;
+const DEMO_LEARNED_WORDS = 74;
+
+const returningIdeaSets: StudyIdea[][] = [
   [
     {
-      scope: "THIS CHAT",
-      title: "Try a market conversation",
-      detail: "Use “comprar” and “¿cuánto cuesta?” in a quick role-play.",
+      id: "continue-market",
+      title: "Keep the market role-play going",
+      detail: "Buy fruit and ask the price in Spanish.",
       prompt:
-        "Let's do a short market role-play in Spanish. Help me practice comprar and ¿cuánto cuesta? Give me one turn at a time and correct me gently.",
-      icon: "chat",
+        "Let's continue our Spanish market role-play. Help me buy fruit and ask the price, one turn at a time.",
     },
     {
-      scope: "YOUR SPANISH CHATS",
-      title: "Practice asking for directions",
-      detail: "Bring back useful phrases from your other Spanish lessons.",
+      id: "revision",
+      title: "Review familiar Spanish words",
+      detail: "A quick quiz from words you've already learned.",
       prompt:
-        "Let's practice asking for directions in Spanish, building on what I've learned in my other Spanish conversations. Make it a short role-play and help me reuse familiar words.",
-      icon: "language",
+        "Give me a quick Spanish review quiz using words I've learned before. Ask one at a time and wait for my answer.",
+    },
+    {
+      id: "playful",
+      title: "Tell me a silly churro story",
+      detail: "A playful Spanish story, then three tiny questions.",
+      prompt:
+        "Tell me a friendly, silly three-line story in Spanish about a runaway churro, then ask me three simple questions about it. Keep the humor kind and non-offensive.",
     },
   ],
   [
     {
-      scope: "THIS CHAT",
-      title: "Review the words from today",
-      detail: "A 3-question mini quiz on the phrases we just used.",
+      id: "continue-weekend",
+      title: "Talk about your weekend",
+      detail: "Use today's phrases in a new little scene.",
       prompt:
-        "Quiz me on the Spanish words and phrases from this chat. Ask three questions one at a time, and wait for my answer.",
-      icon: "chat",
+        "Let's practice talking about my weekend in Spanish using phrases from this chat. Ask me one question at a time and gently correct me.",
     },
     {
-      scope: "YOUR SPANISH CHATS",
-      title: "Mix in food and travel",
-      detail: "Connect topics you've practiced across your Spanish chats.",
+      id: "revision",
+      title: "Bring back words you know",
+      detail: "Practice familiar Spanish with a quick quiz.",
       prompt:
-        "Create a short Spanish conversation that combines food and travel phrases from my other Spanish chats. Keep it interactive and correct me gently.",
-      icon: "language",
+        "Give me a short Spanish review using words I've learned before. Ask one question at a time and wait for my answer.",
+    },
+    {
+      id: "playful",
+      title: "Make a tiny taco adventure",
+      detail: "A friendly Spanish story with a funny twist.",
+      prompt:
+        "Make up a friendly, silly three-line story in Spanish about a taco going on an adventure, then ask me three simple questions. Keep the humor kind and non-offensive.",
     },
   ],
 ];
 
-function Sidebar() {
-  const conversations = [
+const newLanguageIdeaSets: StudyIdea[][] = [
+  [
+    {
+      id: "introduce-yourself",
+      title: "Introduce yourself in French",
+      detail: "Learn a few useful first phrases.",
+      prompt:
+        "Teach me how to introduce myself in French. Give me one short phrase at a time and help me practice.",
+    },
+    {
+      id: "order-coffee",
+      title: "Role-play ordering a coffee",
+      detail: "Start with simple words and build from there.",
+      prompt:
+        "Let's do a beginner French role-play ordering a coffee. Teach me what to say one step at a time.",
+    },
+    {
+      id: "funny-croissant",
+      title: "Tell me a silly croissant story",
+      detail: "A playful French story, then three tiny questions.",
+      prompt:
+        "Tell me a friendly, silly three-line story in French about a runaway croissant, then ask me three simple questions about it. Keep the humor kind and non-offensive.",
+    },
+  ],
+  [
+    {
+      id: "greetings",
+      title: "Practice a first greeting",
+      detail: "Try a friendly hello and introduction.",
+      prompt:
+        "Help me practice a simple greeting and introduction in French. Keep it beginner-friendly and interactive.",
+    },
+    {
+      id: "counting",
+      title: "Learn numbers for a café",
+      detail: "Practice a few useful numbers in context.",
+      prompt:
+        "Teach me a few French numbers I could use in a café. Ask me to use them in a short example.",
+    },
+    {
+      id: "funny-baguette",
+      title: "Give me a baguette challenge",
+      detail: "A light, friendly French word game.",
+      prompt:
+        "Give me a friendly, silly beginner French word challenge about a baguette going on an adventure. Keep it kind and non-offensive.",
+    },
+  ],
+];
+
+function Sidebar({ language = "Spanish" }: { language?: "French" | "Spanish" }) {
+  const french = language === "French";
+  const conversations = french
+    ? [
+        "Start learning French",
+        "New French chat",
+        "A first café visit",
+        "Hello in French",
+        "French practice",
+      ]
+    : [
     "Ordering at the market",
     "Teach me a few greetings",
     "New Spanish chat",
     "A weekend in Madrid",
     "Food and restaurants",
-  ];
+      ];
 
   return (
     <aside className="hidden h-full w-[272px] shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground md:flex">
@@ -87,8 +156,15 @@ function Sidebar() {
           18
         </div>
         <div className="min-w-0">
-          <div className="truncate text-sm font-semibold">Spanish <span className="font-normal text-muted-foreground">Español</span></div>
-          <div className="text-xs text-muted-foreground">18 of 25 words today</div>
+          <div className="truncate text-sm font-semibold">
+            {french ? "French" : "Spanish"}{" "}
+            <span className="font-normal text-muted-foreground">
+              {french ? "Français" : "Español"}
+            </span>
+          </div>
+          <div className="text-xs text-muted-foreground">
+            {french ? "Start with your first 25 words" : "18 of 25 words today"}
+          </div>
         </div>
       </div>
 
@@ -166,126 +242,141 @@ function TutorMessage({
 function SuggestionCard({
   idea,
   onUse,
-  isSelected,
 }: {
   idea: StudyIdea;
   onUse: () => void;
-  isSelected: boolean;
 }) {
-  const ScopeIcon = idea.icon === "chat" ? MessageSquare : Globe2;
   return (
     <button
       type="button"
       onClick={onUse}
-      className="group flex min-h-[104px] w-full items-start gap-3 rounded-xl border border-border bg-background/80 p-3.5 text-left transition hover:border-primary/35 hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-      aria-label={`Use study suggestion: ${idea.title}`}
+      className="group flex h-[66px] w-[320px] shrink-0 items-center gap-2.5 rounded-xl border border-border bg-card px-3 py-2 text-left shadow-sm transition hover:border-primary/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring max-sm:w-full"
+      aria-label={`Choose: ${idea.title}`}
     >
-      <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-        <ScopeIcon className="h-4 w-4" />
+      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+        <Sparkles className="h-3.5 w-3.5" />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-[9px] font-bold tracking-[0.12em] text-muted-foreground">
-          {idea.scope}
-        </span>
-        <span className="mt-1 block text-[13px] font-semibold leading-snug text-foreground">
+        <span className="block truncate text-[12px] font-semibold leading-4 text-foreground">
           {idea.title}
         </span>
-        <span className="mt-1 block text-[11px] leading-[1.45] text-muted-foreground">
+        <span className="mt-0.5 block truncate text-[10px] leading-4 text-muted-foreground">
           {idea.detail}
         </span>
       </span>
-      <span className="mt-1 shrink-0 text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-primary">
-        {isSelected ? (
-          <Check className="h-4 w-4 text-secondary" />
-        ) : (
-          <ArrowRight className="h-4 w-4" />
-        )}
+      <span className="shrink-0 text-muted-foreground transition group-hover:translate-x-0.5">
+        <ArrowRight className="h-3.5 w-3.5" />
       </span>
     </button>
   );
 }
 
-export function FollowupStudy() {
+export function FollowupStudy({
+  mode = "returning",
+}: {
+  mode?: "new" | "returning";
+}) {
   const [input, setInput] = useState("");
   const [ideaSet, setIdeaSet] = useState(0);
-  const [selectedIdea, setSelectedIdea] = useState<string | null>(null);
-  const ideas = ideaSets[ideaSet]!;
+  const french = mode === "new";
+  const ideaSets = french ? newLanguageIdeaSets : returningIdeaSets;
+  const rawIdeas = ideaSets[ideaSet]!;
+  const ideas =
+    !french && DEMO_LEARNED_WORDS > LEARNED_WORD_REVISION_THRESHOLD
+      ? rawIdeas
+      : rawIdeas.filter((idea) => idea.id !== "revision");
+  const language = french ? "French" : "Spanish";
 
   const useIdea = (idea: StudyIdea) => {
     setInput(idea.prompt);
-    setSelectedIdea(idea.title);
   };
 
   return (
     <div className="flex h-screen min-h-[700px] w-full overflow-hidden bg-background font-sans text-foreground">
-      <Sidebar />
+      <Sidebar language={language} />
       <main className="relative flex min-w-0 flex-1 flex-col bg-background/50">
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
           <div className="flex-1 space-y-5 overflow-hidden px-8 pb-5 pt-8 lg:px-12">
-            <TutorMessage>
-              ¡Muy bien! You already know how to greet someone. Let's practice
-              asking for something at a market.
-            </TutorMessage>
-            <TutorMessage user>
-              How do I ask how much something costs?
-            </TutorMessage>
-            <TutorMessage>
-              <p>
-                You can ask{" "}
-                <span className="inline-flex items-baseline gap-2 rounded-md bg-primary/10 px-2 py-0.5">
-                  <span className="text-[17px] text-primary">¿Cuánto cuesta?</span>
-                  <span className="text-xs text-muted-foreground">How much does it cost?</span>
-                </span>
-                {" "}And to say “I want to buy,” use:
-              </p>
-              <div className="mt-2 rounded-xl border border-primary/15 bg-primary/5 px-4 py-3">
-                <div className="text-[17px] text-primary">Quiero comprar esto.</div>
-                <div className="mt-1 text-xs italic text-foreground/70">KYEH-roh kohm-PRAR EHS-toh</div>
-                <div className="mt-1 text-xs text-muted-foreground">I want to buy this.</div>
-              </div>
-              <p className="mt-2">Try it with me: ask how much this book costs.</p>
-            </TutorMessage>
+            {french ? (
+              <>
+                <TutorMessage>
+                  Bonjour! Let's start with a simple way to introduce yourself.
+                </TutorMessage>
+                <TutorMessage user>How do I say “my name is Maya”?</TutorMessage>
+                <TutorMessage>
+                  <p>
+                    You can say{" "}
+                    <span className="inline-flex items-baseline gap-2 rounded-md bg-primary/10 px-2 py-0.5">
+                      <span className="text-[17px] text-primary">Je m’appelle Maya.</span>
+                      <span className="text-xs text-muted-foreground">My name is Maya.</span>
+                    </span>
+                  </p>
+                  <p className="mt-2">Try saying it back to me.</p>
+                </TutorMessage>
+              </>
+            ) : (
+              <>
+                <TutorMessage>
+                  ¡Muy bien! You already know how to greet someone. Let's practice
+                  asking for something at a market.
+                </TutorMessage>
+                <TutorMessage user>
+                  How do I ask how much something costs?
+                </TutorMessage>
+                <TutorMessage>
+                  <p>
+                    You can ask{" "}
+                    <span className="inline-flex items-baseline gap-2 rounded-md bg-primary/10 px-2 py-0.5">
+                      <span className="text-[17px] text-primary">¿Cuánto cuesta?</span>
+                      <span className="text-xs text-muted-foreground">How much does it cost?</span>
+                    </span>
+                    {" "}And to say “I want to buy,” use:
+                  </p>
+                  <div className="mt-2 rounded-xl border border-primary/15 bg-primary/5 px-4 py-3">
+                    <div className="text-[17px] text-primary">Quiero comprar esto.</div>
+                    <div className="mt-1 text-xs italic text-foreground/70">KYEH-roh kohm-PRAR EHS-toh</div>
+                    <div className="mt-1 text-xs text-muted-foreground">I want to buy this.</div>
+                  </div>
+                  <p className="mt-2">Try it with me: ask how much this book costs.</p>
+                </TutorMessage>
+              </>
+            )}
           </div>
         </div>
 
         <footer className="shrink-0 border-t border-border bg-background/90 px-6 pb-5 pt-3 backdrop-blur-sm lg:px-10">
           <section
             aria-labelledby="study-followup-title"
-            className="mx-auto mb-3 max-w-4xl rounded-2xl border border-primary/15 bg-card px-4 py-3.5 shadow-sm"
+            className="mx-auto mb-2 max-w-4xl rounded-2xl border border-border bg-card px-3 py-2.5 shadow-sm"
           >
-            <div className="mb-3 flex items-center justify-between gap-3">
+            <div className="mb-2 flex items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-2.5">
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                  <Sparkles className="h-4 w-4" />
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                  <Sparkles className="h-3.5 w-3.5" />
                 </span>
                 <div className="min-w-0">
-                  <h2 id="study-followup-title" className="text-[13px] font-bold leading-tight">
-                    Keep your Spanish going
+                  <h2 id="study-followup-title" className="text-[12px] font-bold leading-tight">
+                    What would you like to practice?
                   </h2>
-                  <p className="mt-0.5 truncate text-[10px] text-muted-foreground">
-                    AI study ideas · This chat + your other Spanish chats
-                  </p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => {
                   setIdeaSet((current) => (current + 1) % ideaSets.length);
-                  setSelectedIdea(null);
                 }}
-                className="flex h-8 shrink-0 items-center gap-1.5 rounded-lg px-2 text-[11px] font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="flex h-7 shrink-0 items-center gap-1.5 rounded-lg px-2 text-[10px] font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 aria-label="Generate new study ideas"
               >
-                <RefreshCw className="h-3.5 w-3.5" />
+                <RefreshCw className="h-3 w-3" />
                 <span className="hidden sm:inline">New ideas</span>
               </button>
             </div>
-            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+            <div className="study-idea-rail flex w-full gap-2 overflow-x-auto overflow-y-hidden pb-1 scroll-smooth max-sm:max-h-[150px] max-sm:flex-col max-sm:overflow-x-hidden max-sm:overflow-y-auto">
               {ideas.map((idea) => (
                 <SuggestionCard
-                  key={idea.scope}
+                  key={idea.id}
                   idea={idea}
-                  isSelected={selectedIdea === idea.title}
                   onUse={() => useIdea(idea)}
                 />
               ))}
@@ -297,7 +388,6 @@ export function FollowupStudy() {
             onSubmit={(event) => {
               event.preventDefault();
               setInput("");
-              setSelectedIdea(null);
             }}
           >
             <button
@@ -311,10 +401,7 @@ export function FollowupStudy() {
             </button>
             <input
               value={input}
-              onChange={(event) => {
-                setInput(event.target.value);
-                setSelectedIdea(null);
-              }}
+              onChange={(event) => setInput(event.target.value)}
               placeholder="Type your message..."
               aria-label="Type your message"
               className="h-10 min-w-0 flex-1 border-0 bg-transparent px-1 text-sm text-foreground outline-none placeholder:text-muted-foreground"
