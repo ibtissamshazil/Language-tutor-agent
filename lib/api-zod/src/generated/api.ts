@@ -173,6 +173,26 @@ export const GetProgressTodayResponse = zod.object({
 
 
 /**
+ * Returns cumulative learned-word progress and recent vocabulary for study suggestions.
+ * @summary Learning history for a language
+ */
+export const GetProgressHistoryQueryParams = zod.object({
+  "language": zod.coerce.string().optional().describe('Language code to scope learning history to. Defaults to the default language.')
+})
+
+export const GetProgressHistoryResponse = zod.object({
+  "language": zod.string(),
+  "hasHistory": zod.boolean(),
+  "totalWords": zod.number().describe('Cumulative weighted count of taught words across all assistant replies in this language'),
+  "reviewTerms": zod.array(zod.object({
+  "native": zod.string(),
+  "transliteration": zod.string(),
+  "english": zod.string()
+})).describe('Recent distinct vocabulary items taught in this language')
+})
+
+
+/**
  * Returns structured beginner lessons with vocabulary and phrases for the requested language.
  * @summary List beginner lessons for a language
  */

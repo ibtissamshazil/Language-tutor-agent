@@ -10,6 +10,7 @@ import { AUTO_MODEL } from "@/lib/model-preference";
 import { useGoalCelebration } from "@/hooks/use-goal-celebration";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { FollowUpSuggestions } from "@/components/follow-up-suggestions";
 import { SendHorizontal, Sparkles } from "lucide-react";
 import { useLanguage } from "@/hooks/use-language";
 import { getLanguage } from "@workspace/languages";
@@ -128,6 +129,11 @@ export default function ChatPage() {
             {switchNote}
           </p>
         )}
+        <FollowUpSuggestions
+          language={effectiveLanguage.code}
+          onChoose={setInput}
+          disabled={isStreaming}
+        />
         <form
           onSubmit={handleSubmit}
           className="max-w-4xl mx-auto flex items-center gap-2 rounded-2xl border border-card-border bg-card px-2 py-1.5 shadow-sm transition-shadow focus-within:ring-1 focus-within:ring-primary"

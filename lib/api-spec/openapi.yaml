@@ -212,6 +212,26 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/DailyProgress"
+  /progress/history:
+    get:
+      operationId: getProgressHistory
+      tags: [progress]
+      summary: Learning history for a language
+      description: Returns cumulative learned-word progress and recent vocabulary for study suggestions.
+      parameters:
+        - name: language
+          in: query
+          required: false
+          description: Language code to scope learning history to. Defaults to the default language.
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Cumulative learning history
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LearningHistory"
   /lessons:
     get:
       operationId: listLessons
@@ -532,6 +552,39 @@ components:
         - achieved
         - wordsLearned
         - language
+    LearningReviewTerm:
+      type: object
+      properties:
+        native:
+          type: string
+        transliteration:
+          type: string
+        english:
+          type: string
+      required:
+        - native
+        - transliteration
+        - english
+    LearningHistory:
+      type: object
+      properties:
+        language:
+          type: string
+        hasHistory:
+          type: boolean
+        totalWords:
+          type: integer
+          description: Cumulative weighted count of taught words across all assistant replies in this language
+        reviewTerms:
+          type: array
+          description: Recent distinct vocabulary items taught in this language
+          items:
+            $ref: "#/components/schemas/LearningReviewTerm"
+      required:
+        - language
+        - hasHistory
+        - totalWords
+        - reviewTerms
     LessonPhrase:
       type: object
       properties:

@@ -7,6 +7,7 @@ import {
   getGetOpenaiConversationQueryKey,
   getListOpenaiConversationsQueryKey,
   getGetProgressTodayQueryKey,
+  getGetProgressHistoryQueryKey,
   useGetOpenaiConversation,
   OpenaiMessage
 } from "@workspace/api-client-react";
@@ -243,6 +244,12 @@ export function useChat(
       });
       queryClient.invalidateQueries({ queryKey: getListOpenaiConversationsQueryKey() });
       queryClient.invalidateQueries({ queryKey: getGetProgressTodayQueryKey() });
+      const learnedLanguage = conversationData?.language ?? newConversationLanguage;
+      if (learnedLanguage) {
+        queryClient.invalidateQueries({
+          queryKey: getGetProgressHistoryQueryKey({ language: learnedLanguage }),
+        });
+      }
 
       if (truncatedNotice && activeConversationIdRef.current === targetConversationId) {
         setError(truncatedNotice);

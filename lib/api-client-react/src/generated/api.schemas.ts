@@ -115,6 +115,21 @@ export interface DailyProgress {
   language: string;
 }
 
+export interface LearningReviewTerm {
+  native: string;
+  transliteration: string;
+  english: string;
+}
+
+export interface LearningHistory {
+  language: string;
+  hasHistory: boolean;
+  /** Cumulative weighted count of taught words across all assistant replies in this language */
+  totalWords: number;
+  /** Recent distinct vocabulary items taught in this language */
+  reviewTerms: LearningReviewTerm[];
+}
+
 export interface LessonPhrase {
   /** The phrase written in the target language's native script */
   native: string;
@@ -156,6 +171,13 @@ export interface Lesson {
 export type GetProgressTodayParams = {
 /**
  * Language code to scope progress to. Defaults to the default language.
+ */
+language?: string;
+};
+
+export type GetProgressHistoryParams = {
+/**
+ * Language code to scope learning history to. Defaults to the default language.
  */
 language?: string;
 };

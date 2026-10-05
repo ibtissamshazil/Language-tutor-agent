@@ -8,8 +8,11 @@
 
 export * from './dailyProgress';
 export * from './getLessonParams';
+export * from './getProgressHistoryParams';
 export * from './getProgressTodayParams';
 export * from './healthStatus';
+export * from './learningHistory';
+export * from './learningReviewTerm';
 export * from './lesson';
 export * from './lessonCompletionInput';
 export * from './lessonCompletions';

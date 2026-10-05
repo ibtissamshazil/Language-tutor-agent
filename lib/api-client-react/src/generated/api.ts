@@ -22,8 +22,10 @@ import type {
 import type {
   DailyProgress,
   GetLessonParams,
+  GetProgressHistoryParams,
   GetProgressTodayParams,
   HealthStatus,
+  LearningHistory,
   Lesson,
   LessonCompletionInput,
   LessonCompletions,
@@ -797,6 +799,91 @@ export function useGetProgressToday<TData = Awaited<ReturnType<typeof getProgres
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetProgressTodayQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetProgressHistoryUrl = (params?: GetProgressHistoryParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/progress/history?${stringifiedParams}` : `/api/progress/history`
+}
+
+/**
+ * Returns cumulative learned-word progress and recent vocabulary for study suggestions.
+ * @summary Learning history for a language
+ */
+export const getProgressHistory = async (params?: GetProgressHistoryParams, options?: RequestInit): Promise<LearningHistory> => {
+
+  return customFetch<LearningHistory>(getGetProgressHistoryUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetProgressHistoryQueryKey = (params?: GetProgressHistoryParams,) => {
+    return [
+    `/api/progress/history`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetProgressHistoryQueryOptions = <TData = Awaited<ReturnType<typeof getProgressHistory>>, TError = ErrorType<unknown>>(params?: GetProgressHistoryParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getProgressHistory>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetProgressHistoryQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getProgressHistory>>> = ({ signal }) => getProgressHistory(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getProgressHistory>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetProgressHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof getProgressHistory>>>
+export type GetProgressHistoryQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Learning history for a language
+ */
+
+export function useGetProgressHistory<TData = Awaited<ReturnType<typeof getProgressHistory>>, TError = ErrorType<unknown>>(
+ params?: GetProgressHistoryParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getProgressHistory>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetProgressHistoryQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
