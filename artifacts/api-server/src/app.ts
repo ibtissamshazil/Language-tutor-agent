@@ -1,10 +1,13 @@
 import express, { type Express } from "express";
-import cors from "cors";
+import cookieParser from "cookie-parser";
+import { csrfProtection } from "./lib/auth";
 import pinoHttp from "pino-http";
 import router from "./routes";
 import { logger } from "./lib/logger";
+import { trustIngressProxy } from "./lib/ingress";
 
 const app: Express = express();
+app.set("trust proxy", trustIngressProxy);
 
 app.use(
   pinoHttp({
@@ -25,9 +28,9 @@ app.use(
     },
   }),
 );
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
+app.use(csrfProtection);
+app.use(express.json({ limit: "32kb" }));
 
 app.use("/api", router);
 

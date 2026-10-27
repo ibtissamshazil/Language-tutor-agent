@@ -9,14 +9,14 @@ const router: IRouter = Router();
 
 // Returns the slugs of completed lessons for a language, filtered to slugs that
 // actually exist in the lesson content so stale rows never leak to the client.
-async function completionsFor(languageCode: string): Promise<string[]> {
+async function completionsFor(languageCode: string, userId: number): Promise<string[]> {
   const validSlugs = new Set(
     (LESSONS_BY_LANGUAGE[languageCode] ?? []).map((l) => l.slug),
   );
   const rows = await db
     .select({ lessonSlug: lessonCompletions.lessonSlug })
     .from(lessonCompletions)
-    .where(eq(lessonCompletions.language, languageCode));
+    .where(and(eq(lessonCompletions.language, languageCode), eq(lessonCompletions.userId, userId)));
   return rows.map((r) => r.lessonSlug).filter((slug) => validSlugs.has(slug));
 }
 
@@ -25,7 +25,7 @@ router.get("/", async (req, res) => {
   const language = getLanguage(
     typeof req.query.language === "string" ? req.query.language : undefined,
   );
-  const completedSlugs = await completionsFor(language.code);
+  const completedSlugs = await completionsFor(language.code, req.account.id);
   res.json({ language: language.code, completedSlugs });
 });
 
@@ -49,10 +49,10 @@ router.post("/", async (req, res) => {
 
   await db
     .insert(lessonCompletions)
-    .values({ language: language.code, lessonSlug: slug })
+    .values({ language: language.code, lessonSlug: slug, userId: req.account.id })
     .onConflictDoNothing();
 
-  const completedSlugs = await completionsFor(language.code);
+  const completedSlugs = await completionsFor(language.code, req.account.id);
   res.json({ language: language.code, completedSlugs });
 });
 
@@ -65,11 +65,12 @@ router.delete("/:slug", async (req, res) => {
     .delete(lessonCompletions)
     .where(
       and(
+        eq(lessonCompletions.userId, req.account.id),
         eq(lessonCompletions.language, language.code),
         eq(lessonCompletions.lessonSlug, req.params.slug),
       ),
     );
-  const completedSlugs = await completionsFor(language.code);
+  const completedSlugs = await completionsFor(language.code, req.account.id);
   res.json({ language: language.code, completedSlugs });
 });
 

@@ -5,10 +5,14 @@ import lessonsRouter from "./lessons";
 import lessonCompletionsRouter from "./lesson-completions";
 import progressRouter from "./progress";
 import modelsRouter from "./models";
+import authRouter from "./auth";
+import { requireAuth } from "../lib/auth";
 
 const router: IRouter = Router();
 
 router.use(healthRouter);
+router.use("/auth", authRouter);
+router.use(requireAuth);
 router.use("/openai", openaiRouter);
 router.use(lessonsRouter);
 router.use("/lesson-completions", lessonCompletionsRouter);

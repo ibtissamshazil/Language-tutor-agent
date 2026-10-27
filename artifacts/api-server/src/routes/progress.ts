@@ -30,6 +30,7 @@ router.get("/today", async (req, res) => {
         eq(messages.role, "assistant"),
         gte(messages.createdAt, startOfToday()),
         eq(conversations.language, language.code),
+        eq(conversations.userId, req.account.id),
       ),
     );
 
@@ -52,6 +53,7 @@ router.get("/history", async (req, res) => {
       and(
         eq(messages.role, "assistant"),
         eq(conversations.language, language.code),
+        eq(conversations.userId, req.account.id),
       ),
     )
     .orderBy(desc(messages.createdAt));

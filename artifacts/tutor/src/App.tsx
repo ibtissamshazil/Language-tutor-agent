@@ -10,6 +10,7 @@ import LessonDetailPage from "@/pages/lesson-detail";
 import SettingsPage from "@/pages/settings";
 import { LanguageProvider } from "@/hooks/use-language";
 import { ThemeProvider } from "@/hooks/use-theme";
+import { AccountBoundary } from "@/hooks/use-account";
 
 const queryClient = new QueryClient();
 
@@ -35,7 +36,7 @@ function App() {
         <LanguageProvider>
           <TooltipProvider>
             <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-              <Router />
+              <AccountBoundary><Router /></AccountBoundary>
             </WouterRouter>
             <Toaster />
           </TooltipProvider>

@@ -42,6 +42,12 @@ export function useChat(
   newConversationLevel?: string,
 ) {
   const queryClient = useQueryClient();
+  const alive = useRef(true);
+  const controller = useRef<AbortController | null>(null);
+  useEffect(() => {
+    alive.current = true;
+    return () => { alive.current = false; controller.current?.abort(); };
+  }, []);
   const createConversation = useCreateOpenaiConversation();
   
   const { data: conversationData, isLoading: isLoadingConversation } = useGetOpenaiConversation(
@@ -95,8 +101,11 @@ export function useChat(
   }, [conversationId]);
 
   const sendMessage = async (content: string, onNewConversation?: (id: number) => void) => {
+    if (controller.current) return;
+    const abort = new AbortController();
+    controller.current = abort;
     const trimmed = content.trim();
-    if (!trimmed) return;
+    if (!trimmed) { controller.current = null; return; }
 
     let targetConversationId = activeConversationIdRef.current;
     setError(null);
@@ -127,6 +136,7 @@ export function useChat(
         const newConv = await createConversation.mutateAsync({
           data: { title, language: newConversationLanguage, level: newConversationLevel },
         });
+        if (!alive.current) return;
         targetConversationId = newConv.id;
         activeConversationIdRef.current = newConv.id;
         queryClient.invalidateQueries({ queryKey: getListOpenaiConversationsQueryKey() });
@@ -146,9 +156,15 @@ export function useChat(
 
       const res = await fetch(`${import.meta.env.BASE_URL}api/openai/conversations/${targetConversationId}/messages`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        signal: abort.signal,
+        headers: { "Content-Type": "application/json", "X-Tutor-Request": "1" },
         body: JSON.stringify({ content: trimmed, model: getPreferredModel() })
       });
+      if (res.status === 401) {
+        window.dispatchEvent(new Event("tutor-session-expired"));
+        return;
+      }
 
       if (!res.ok || !res.headers.get("content-type")?.includes("text/event-stream")) {
         // The request never became a stream: a validation rejection, a missing
@@ -175,6 +191,7 @@ export function useChat(
       // the whole reply — or the whole of what was saved.
       let completed = false;
       for await (const chunk of parseSSEStream(res)) {
+        if (!alive.current) return;
         if (chunk.error) {
           streamError = {
             message: chunk.error,
@@ -256,6 +273,7 @@ export function useChat(
       }
 
     } catch (e) {
+      if (!alive.current) return;
       const stillViewing = activeConversationIdRef.current === targetConversationId;
       if (stillViewing) {
         rollback();
@@ -279,6 +297,7 @@ export function useChat(
           .catch(() => undefined);
       }
     } finally {
+      controller.current = null;
       streamingConversationIdRef.current = undefined;
       setIsStreaming(false);
     }

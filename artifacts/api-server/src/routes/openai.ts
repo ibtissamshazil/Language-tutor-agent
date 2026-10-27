@@ -28,6 +28,7 @@ import {
 } from "../lib/llm-errors";
 import { startOfToday, summarizeProgress } from "../lib/progress";
 import { compactHistory, toChatTurns } from "../lib/history";
+import { watchSession } from "../lib/auth";
 
 const router: IRouter = Router();
 
@@ -137,10 +138,11 @@ function progressDirective(points: number, target: number, achieved: boolean): s
 }
 
 // List all conversations
-router.get("/conversations", async (_req, res) => {
+router.get("/conversations", async (req, res) => {
   const rows = await db
     .select()
     .from(conversations)
+    .where(eq(conversations.userId, req.account.id))
     .orderBy(desc(conversations.createdAt));
   res.json(rows);
 });
@@ -159,7 +161,7 @@ router.post("/conversations", async (req, res) => {
   const level = getLevel(parsed.data.level).code;
   const [row] = await db
     .insert(conversations)
-    .values({ title: parsed.data.title, language, level })
+    .values({ title: parsed.data.title, language, level, userId: req.account.id })
     .returning();
   res.status(201).json(row);
 });
@@ -199,7 +201,7 @@ router.patch("/conversations/:id", async (req, res) => {
   const [row] = await db
     .update(conversations)
     .set(updates)
-    .where(eq(conversations.id, id))
+    .where(and(eq(conversations.id, id), eq(conversations.userId, req.account.id)))
     .returning();
   if (!row) {
     res.status(404).json({ error: "Conversation not found" });
@@ -218,7 +220,7 @@ router.get("/conversations/:id", async (req, res) => {
   const [conversation] = await db
     .select()
     .from(conversations)
-    .where(eq(conversations.id, id));
+    .where(and(eq(conversations.id, id), eq(conversations.userId, req.account.id)));
   if (!conversation) {
     res.status(404).json({ error: "Conversation not found" });
     return;
@@ -240,7 +242,7 @@ router.delete("/conversations/:id", async (req, res) => {
   }
   const [deleted] = await db
     .delete(conversations)
-    .where(eq(conversations.id, id))
+    .where(and(eq(conversations.id, id), eq(conversations.userId, req.account.id)))
     .returning();
   if (!deleted) {
     res.status(404).json({ error: "Conversation not found" });
@@ -256,6 +258,9 @@ router.get("/conversations/:id/messages", async (req, res) => {
     res.status(400).json({ error: "Invalid conversation id" });
     return;
   }
+  const [parent] = await db.select({ id: conversations.id }).from(conversations)
+    .where(and(eq(conversations.id, id), eq(conversations.userId, req.account.id)));
+  if (!parent) { res.status(404).json({ error: "Conversation not found" }); return; }
   const msgs = await db
     .select()
     .from(messages)
@@ -281,7 +286,7 @@ router.post("/conversations/:id/messages", async (req, res) => {
   const [conversation] = await db
     .select()
     .from(conversations)
-    .where(eq(conversations.id, id));
+    .where(and(eq(conversations.id, id), eq(conversations.userId, req.account.id)));
   if (!conversation) {
     res.status(404).json({ error: "Conversation not found" });
     return;
@@ -317,6 +322,11 @@ router.post("/conversations/:id/messages", async (req, res) => {
   // navigates away during them would otherwise disconnect before anything
   // was listening, and the server would generate a reply for a dead socket.
   res.on("close", onClientGone);
+  watchSession(req, res, () => {
+    clientDisconnected = true;
+    abortController.abort();
+    res.end();
+  });
 
   // The requested slug comes from the browser and is sent upstream under the
   // account's API key, so it is checked against the free catalogue before
@@ -372,6 +382,7 @@ router.post("/conversations/:id/messages", async (req, res) => {
         eq(messages.role, "assistant"),
         gte(messages.createdAt, startOfToday()),
         eq(conversations.language, language.code),
+        eq(conversations.userId, req.account.id),
       ),
     );
   const progress = summarizeProgress(todaysAssistantMessages.map((m) => m.content));

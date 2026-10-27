@@ -8,6 +8,94 @@
 import * as zod from 'zod';
 
 
+export const GetSignInMethodsResponse = zod.object({
+  "emailCode": zod.boolean(),
+  "google": zod.boolean(),
+  "password": zod.boolean()
+})
+
+
+export const requestEmailCodeBodyEmailMax = 254;
+
+
+
+export const RequestEmailCodeBody = zod.object({
+  "email": zod.string().email().max(requestEmailCodeBodyEmailMax)
+})
+
+export const RequestEmailCodeResponse = zod.object({
+  "challengeId": zod.string().uuid(),
+  "expiresInSeconds": zod.number(),
+  "resendAfterSeconds": zod.number()
+})
+
+
+export const verifyEmailCodeBodyCodeRegExp = new RegExp('^[0-9]{6}$');
+export const verifyEmailCodeBodyPasswordMin = 12;
+export const verifyEmailCodeBodyPasswordMax = 128;
+
+
+
+export const VerifyEmailCodeBody = zod.object({
+  "challengeId": zod.string().uuid(),
+  "code": zod.string().regex(verifyEmailCodeBodyCodeRegExp),
+  "password": zod.string().min(verifyEmailCodeBodyPasswordMin).max(verifyEmailCodeBodyPasswordMax).optional().describe('Optional password to set after proving ownership of this email')
+})
+
+export const VerifyEmailCodeResponse = zod.object({
+  "user": zod.object({
+  "id": zod.number(),
+  "email": zod.string()
+})
+})
+
+
+export const StartGoogleSignInResponse = zod.object({
+  "url": zod.string().url()
+})
+
+
+export const registerAccountBodyEmailMax = 254;
+
+export const registerAccountBodyPasswordMin = 12;
+export const registerAccountBodyPasswordMax = 128;
+
+
+
+export const RegisterAccountBody = zod.object({
+  "email": zod.string().email().max(registerAccountBodyEmailMax),
+  "password": zod.string().min(registerAccountBodyPasswordMin).max(registerAccountBodyPasswordMax)
+})
+
+
+export const loginAccountBodyEmailMax = 254;
+
+export const loginAccountBodyPasswordMin = 12;
+export const loginAccountBodyPasswordMax = 128;
+
+
+
+export const LoginAccountBody = zod.object({
+  "email": zod.string().email().max(loginAccountBodyEmailMax),
+  "password": zod.string().min(loginAccountBodyPasswordMin).max(loginAccountBodyPasswordMax)
+})
+
+export const LoginAccountResponse = zod.object({
+  "user": zod.object({
+  "id": zod.number(),
+  "email": zod.string()
+})
+})
+
+
+export const GetAccountSessionResponse = zod.object({
+  "user": zod.object({
+  "id": zod.number(),
+  "email": zod.string()
+})
+})
+
+
 /**
  * Returns server health status
  * @summary Health check

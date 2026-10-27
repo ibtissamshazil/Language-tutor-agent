@@ -5,6 +5,48 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export interface SignInMethods {
+  emailCode: boolean;
+  google: boolean;
+  password: boolean;
+}
+
+export interface EmailCodeRequest {
+  /** @maxLength 254 */
+  email: string;
+}
+
+export interface EmailCodeVerification {
+  challengeId: string;
+  /** @pattern ^[0-9]{6}$ */
+  code: string;
+  /**
+     * Optional password to set after proving ownership of this email
+     * @minLength 12
+     * @maxLength 128
+     */
+  password?: string;
+}
+
+export interface Credentials {
+  /** @maxLength 254 */
+  email: string;
+  /**
+     * @minLength 12
+     * @maxLength 128
+     */
+  password: string;
+}
+
+export type AccountSessionUser = {
+  id: number;
+  email: string;
+};
+
+export interface AccountSession {
+  user: AccountSessionUser;
+}
+
 export interface HealthStatus {
   status: string;
 }
@@ -167,6 +209,16 @@ export interface Lesson {
   level: string;
   phrases: LessonPhrase[];
 }
+
+export type RequestEmailCode200 = {
+  challengeId: string;
+  expiresInSeconds: number;
+  resendAfterSeconds: number;
+};
+
+export type StartGoogleSignIn200 = {
+  url: string;
+};
 
 export type GetProgressTodayParams = {
 /**

@@ -322,6 +322,14 @@ async function parseSuccessBody(
   }
 }
 
+let privateGeneration = 0;
+let privateController = new AbortController();
+export function cancelPrivateRequests() {
+  privateGeneration++;
+  privateController.abort();
+  privateController = new AbortController();
+}
+
 export async function customFetch<T = unknown>(
   input: RequestInfo | URL,
   options: CustomFetchOptions = {},
@@ -359,13 +367,23 @@ export async function customFetch<T = unknown>(
   }
 
   const requestInfo = { method, url: resolveUrl(input) };
+  const generation = privateGeneration;
+  const isPrivate = !requestInfo.url.includes("/auth/");
+  if (isPrivate) init.signal = init.signal ? AbortSignal.any([init.signal, privateController.signal]) : privateController.signal;
 
-  const response = await fetch(input, { ...init, method, headers });
+  headers.set("X-Tutor-Request", "1");
+  const response = await fetch(input, { ...init, method, headers, credentials: "same-origin" });
+  if (isPrivate && generation !== privateGeneration) throw new DOMException("Account changed", "AbortError");
+  if (response.status === 401 && !requestInfo.url.includes("/auth/") && typeof window !== "undefined") {
+    window.dispatchEvent(new Event("tutor-session-expired"));
+  }
 
   if (!response.ok) {
     const errorData = await parseErrorBody(response, method);
     throw new ApiError(response, errorData, requestInfo);
   }
 
-  return (await parseSuccessBody(response, responseType, requestInfo)) as T;
+  const result = await parseSuccessBody(response, responseType, requestInfo);
+  if (isPrivate && generation !== privateGeneration) throw new DOMException("Account changed", "AbortError");
+  return result as T;
 }

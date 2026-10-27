@@ -7,6 +7,8 @@ info:
 servers:
   - url: /api
     description: Base API path
+security:
+  - cookieSession: []
 tags:
   - name: health
     description: Health operations
@@ -19,6 +21,155 @@ tags:
   - name: models
     description: Models available to answer with
 paths:
+  /auth/methods:
+    get:
+      security: []
+      operationId: getSignInMethods
+      tags: [auth]
+      responses:
+        "200":
+          description: Available sign-in methods without exposing configuration values
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SignInMethods"
+  /auth/email-code/request:
+    post:
+      security: []
+      operationId: requestEmailCode
+      tags: [auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmailCodeRequest"
+      responses:
+        "200":
+          description: Code sent
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [challengeId, expiresInSeconds, resendAfterSeconds]
+                properties:
+                  challengeId:
+                    type: string
+                    format: uuid
+                  expiresInSeconds:
+                    type: integer
+                  resendAfterSeconds:
+                    type: integer
+        default:
+          description: Invalid email (400), request rejected (403), rate limited (429), or delivery unavailable (503)
+  /auth/email-code/verify:
+    post:
+      security: []
+      operationId: verifyEmailCode
+      tags: [auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmailCodeVerification"
+      responses:
+        "200":
+          description: Signed in or new verified account created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountSession"
+        default:
+          description: Invalid input (400), invalid/expired code (401), origin rejected (403), or rate limited (429)
+  /auth/google/start:
+    post:
+      security: []
+      operationId: startGoogleSignIn
+      tags: [auth]
+      responses:
+        "200":
+          description: Google authorization URL with server-managed state and PKCE
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [url]
+                properties:
+                  url:
+                    type: string
+                    format: uri
+        default:
+          description: Origin rejected (403), rate limited (429), or Google is not configured (503)
+  /auth/google/callback:
+    get:
+      security: []
+      operationId: googleSignInCallback
+      tags: [auth]
+      responses:
+        "302":
+          description: Redirect to tutor on success or sign-in with a generic error
+  /auth/register:
+    post:
+      security: []
+      operationId: registerAccount
+      tags: [auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Credentials"
+      responses:
+        default:
+          description: Invalid input (400), origin rejected (403), duplicate email (409), or too many attempts (429)
+        "201":
+          description: Account created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountSession"
+  /auth/login:
+    post:
+      security: []
+      operationId: loginAccount
+      tags: [auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Credentials"
+      responses:
+        default:
+          description: Invalid input (400), invalid credentials (401), origin rejected (403), or too many attempts (429)
+        "200":
+          description: Signed in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountSession"
+  /auth/session:
+    get:
+      operationId: getAccountSession
+      tags: [auth]
+      responses:
+        "200":
+          description: Current account
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountSession"
+        "401":
+          description: No valid session
+  /auth/logout:
+    post:
+      security: []
+      operationId: logoutAccount
+      tags: [auth]
+      responses:
+        "204":
+          description: Session revoked
   /healthz:
     get:
       operationId: healthCheck
@@ -353,7 +504,69 @@ paths:
               schema:
                 $ref: "#/components/schemas/OpenaiError"
 components:
+  securitySchemes:
+    cookieSession:
+      type: apiKey
+      in: cookie
+      name: tutor_session
   schemas:
+    SignInMethods:
+      type: object
+      required: [emailCode, google, password]
+      properties:
+        emailCode:
+          type: boolean
+        google:
+          type: boolean
+        password:
+          type: boolean
+    EmailCodeRequest:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 254
+    EmailCodeVerification:
+      type: object
+      required: [challengeId, code]
+      properties:
+        challengeId:
+          type: string
+          format: uuid
+        code:
+          type: string
+          pattern: '^[0-9]{6}$'
+        password:
+          type: string
+          minLength: 12
+          maxLength: 128
+          description: Optional password to set after proving ownership of this email
+    Credentials:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        password:
+          type: string
+          minLength: 12
+          maxLength: 128
+    AccountSession:
+      type: object
+      required: [user]
+      properties:
+        user:
+          type: object
+          required: [id, email]
+          properties:
+            id:
+              type: integer
+            email:
+              type: string
     HealthStatus:
       type: object
       properties:

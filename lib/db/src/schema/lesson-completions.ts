@@ -1,4 +1,5 @@
-import { pgTable, serial, text, timestamp, unique } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, timestamp, unique, integer } from "drizzle-orm/pg-core";
+import { accounts } from "./accounts";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -10,13 +11,14 @@ export const lessonCompletions = pgTable(
   "lesson_completions",
   {
     id: serial("id").primaryKey(),
+    userId: integer("user_id").references(() => accounts.id),
     language: text("language").notNull(),
     lessonSlug: text("lesson_slug").notNull(),
     completedAt: timestamp("completed_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
   },
-  (table) => [unique().on(table.language, table.lessonSlug)],
+  (table) => [unique("lesson_completions_user_language_slug_unique").on(table.userId, table.language, table.lessonSlug)],
 );
 
 export const insertLessonCompletionSchema = createInsertSchema(

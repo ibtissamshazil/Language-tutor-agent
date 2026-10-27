@@ -2,3 +2,4 @@
 export * from "./conversations";
 export * from "./messages";
 export * from "./lesson-completions";
+export * from "./accounts";

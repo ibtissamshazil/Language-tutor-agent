@@ -15,8 +15,10 @@ import { useLanguage } from "@/hooks/use-language";
 import { getLanguage } from "@workspace/languages";
 import { LearningBadge } from "@/components/learning-badge";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { useAccount } from "@/hooks/use-account";
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
+  const { user, signOut } = useAccount();
   const [location, setLocation] = useLocation();
   const { data: conversations } = useListOpenaiConversations();
   const deleteConversation = useDeleteOpenaiConversation();
@@ -129,6 +131,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         </ScrollArea>
       </div>
 
+      <div className="border-t border-sidebar-border px-4 py-3">
+        <p className="truncate text-sm" title={user.email}>{user.email}</p>
+        <Button variant="ghost" onClick={() => void signOut()}>Sign out</Button>
+      </div>
       <div className="flex items-center justify-between gap-2 border-t border-sidebar-border px-4 py-3">
         <span className="text-xs font-medium text-muted-foreground">Theme</span>
         <ThemeToggle />

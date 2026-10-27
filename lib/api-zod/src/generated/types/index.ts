@@ -6,7 +6,12 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './accountSession';
+export * from './accountSessionUser';
+export * from './credentials';
 export * from './dailyProgress';
+export * from './emailCodeRequest';
+export * from './emailCodeVerification';
 export * from './getLessonParams';
 export * from './getProgressHistoryParams';
 export * from './getProgressTodayParams';
@@ -28,4 +33,7 @@ export * from './openaiConversationWithMessages';
 export * from './openaiError';
 export * from './openaiMessage';
 export * from './openaiMessageInput';
+export * from './requestEmailCode200';
+export * from './signInMethods';
+export * from './startGoogleSignIn200';
 export * from './unmarkLessonCompletedParams';
