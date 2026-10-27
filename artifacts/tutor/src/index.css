@@ -192,3 +192,52 @@
     @apply font-sans antialiased bg-background text-foreground selection:bg-primary/20;
   }
 }
+
+/* Keep scrolling available without a prominent, permanently visible bar.
+   Reserve the same thin gutter in both states so hovering doesn't shift cards. */
+.study-followup {
+  --study-scrollbar-visible: #dedad4;
+}
+
+.dark .study-followup {
+  --study-scrollbar-visible: #293a45;
+}
+
+.study-idea-rail {
+  --study-scrollbar-thumb: transparent;
+  scrollbar-width: thin;
+  scrollbar-color: var(--study-scrollbar-thumb) transparent;
+}
+
+.study-followup:hover .study-idea-rail {
+  --study-scrollbar-thumb: var(--study-scrollbar-visible);
+}
+
+/* Chromium/Safari allow a finer size than the standard "thin" keyword. */
+@supports selector(::-webkit-scrollbar) {
+  .study-idea-rail {
+    scrollbar-width: auto;
+    scrollbar-color: auto;
+  }
+
+  .study-idea-rail::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+
+  .study-idea-rail::-webkit-scrollbar-track,
+  .study-idea-rail::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
+  .study-idea-rail::-webkit-scrollbar-thumb {
+    background: var(--study-scrollbar-thumb);
+    border-radius: 999px;
+  }
+
+  .study-idea-rail::-webkit-scrollbar-button {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+}

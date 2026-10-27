@@ -237,7 +237,7 @@ export function FollowUpSuggestions({
   return (
     <section
       aria-labelledby="study-followup-title"
-      className="mx-auto mb-2 max-w-4xl rounded-2xl border border-border bg-card px-3 py-2.5 shadow-sm"
+      className="study-followup mx-auto mb-2 max-w-4xl rounded-2xl border border-border bg-card px-3 py-2.5 shadow-sm"
     >
       <div className="mb-2 flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2.5">

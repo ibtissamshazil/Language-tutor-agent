@@ -20,13 +20,13 @@ export const requestEmailCodeBodyEmailMax = 254;
 
 
 export const RequestEmailCodeBody = zod.object({
-  "email": zod.string().email().max(requestEmailCodeBodyEmailMax)
+  "email": zod.email().max(requestEmailCodeBodyEmailMax)
 })
 
 export const RequestEmailCodeResponse = zod.object({
-  "challengeId": zod.string().uuid(),
-  "expiresInSeconds": zod.number(),
-  "resendAfterSeconds": zod.number()
+  "challengeId": zod.uuid(),
+  "expiresInSeconds": zod.int(),
+  "resendAfterSeconds": zod.int()
 })
 
 
@@ -37,22 +37,25 @@ export const verifyEmailCodeBodyPasswordMax = 128;
 
 
 export const VerifyEmailCodeBody = zod.object({
-  "challengeId": zod.string().uuid(),
+  "challengeId": zod.uuid(),
   "code": zod.string().regex(verifyEmailCodeBodyCodeRegExp),
   "password": zod.string().min(verifyEmailCodeBodyPasswordMin).max(verifyEmailCodeBodyPasswordMax).optional().describe('Optional password to set after proving ownership of this email')
 })
 
 export const VerifyEmailCodeResponse = zod.object({
   "user": zod.object({
-  "id": zod.number(),
+  "id": zod.int(),
   "email": zod.string()
 })
 })
 
 
 export const StartGoogleSignInResponse = zod.object({
-  "url": zod.string().url()
+  "url": zod.url()
 })
+
+
+export const GoogleSignInCallbackResponse = zod.void()
 
 
 export const registerAccountBodyEmailMax = 254;
@@ -63,8 +66,15 @@ export const registerAccountBodyPasswordMax = 128;
 
 
 export const RegisterAccountBody = zod.object({
-  "email": zod.string().email().max(registerAccountBodyEmailMax),
+  "email": zod.email().max(registerAccountBodyEmailMax),
   "password": zod.string().min(registerAccountBodyPasswordMin).max(registerAccountBodyPasswordMax)
+})
+
+export const RegisterAccountResponse = zod.object({
+  "user": zod.object({
+  "id": zod.int(),
+  "email": zod.string()
+})
 })
 
 
@@ -76,13 +86,13 @@ export const loginAccountBodyPasswordMax = 128;
 
 
 export const LoginAccountBody = zod.object({
-  "email": zod.string().email().max(loginAccountBodyEmailMax),
+  "email": zod.email().max(loginAccountBodyEmailMax),
   "password": zod.string().min(loginAccountBodyPasswordMin).max(loginAccountBodyPasswordMax)
 })
 
 export const LoginAccountResponse = zod.object({
   "user": zod.object({
-  "id": zod.number(),
+  "id": zod.int(),
   "email": zod.string()
 })
 })
@@ -90,10 +100,13 @@ export const LoginAccountResponse = zod.object({
 
 export const GetAccountSessionResponse = zod.object({
   "user": zod.object({
-  "id": zod.number(),
+  "id": zod.int(),
   "email": zod.string()
 })
 })
+
+
+export const LogoutAccountResponse = zod.void()
 
 
 /**
