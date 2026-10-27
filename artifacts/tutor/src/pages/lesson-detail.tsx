@@ -5,8 +5,10 @@ import {
   getListLessonCompletionsQueryKey,
   useMarkLessonCompleted,
   useUnmarkLessonCompleted,
+  useCreateOpenaiConversation,
+  getListOpenaiConversationsQueryKey,
 } from "@workspace/api-client-react";
-import { useRoute, Link } from "wouter";
+import { useRoute, useLocation, Link } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, MessageSquarePlus, CheckCircle2, Circle } from "lucide-react";
@@ -19,6 +21,19 @@ export default function LessonDetailPage() {
   const slug = params?.slug || "";
   const { code: languageCode, language } = useLanguage();
   const queryClient = useQueryClient();
+  const [, navigate] = useLocation();
+  const practice = useCreateOpenaiConversation();
+  const startPractice = async () => {
+    if (!lesson || practice.isPending) return;
+    try {
+      const chat = await practice.mutateAsync({ data: {
+        title: `Practice: ${lesson.title}`, language: languageCode,
+        level: lesson.level, lessonSlug: lesson.slug,
+      } });
+      queryClient.invalidateQueries({ queryKey: getListOpenaiConversationsQueryKey() });
+      navigate(`/chat/${chat.id}`);
+    } catch { /* The mutation error is rendered below; don't navigate on failure. */ }
+  };
 
   const queryParams = { language: languageCode };
   const { data: lesson, isLoading } = useGetLesson(slug, queryParams, {
@@ -112,14 +127,13 @@ export default function LessonDetailPage() {
               )}
               {isCompleted ? "Completed" : "Mark as completed"}
             </Button>
-            <Link href="/" className="shrink-0">
-              <Button size="lg" className="rounded-xl w-full md:w-auto font-medium">
+              <Button onClick={startPractice} disabled={practice.isPending} size="lg" className="rounded-xl w-full md:w-auto font-medium">
                 <MessageSquarePlus className="mr-2 h-5 w-5" />
                 Practice in Chat
               </Button>
-            </Link>
           </div>
         </div>
+        {practice.isError && <p role="alert" className="mb-4 text-destructive">Could not open practice. Please try again.</p>}
 
         <div className="space-y-6">
           <h2 className="text-2xl font-semibold mb-6">Key Phrases</h2>

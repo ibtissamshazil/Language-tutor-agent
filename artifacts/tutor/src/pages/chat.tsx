@@ -15,6 +15,7 @@ import { SendHorizontal, Sparkles } from "lucide-react";
 import { useLanguage } from "@/hooks/use-language";
 import { getLanguage } from "@workspace/languages";
 import { cn } from "@/lib/utils";
+import { useGetLesson } from "@workspace/api-client-react";
 
 export default function ChatPage() {
   const [, params] = useRoute("/chat/:id");
@@ -23,7 +24,7 @@ export default function ChatPage() {
   const conversationId = isNewChat ? undefined : parseInt(params!.id);
 
   const { code: activeLanguageCode, level: activeLevel } = useLanguage();
-  const { messages, isStreaming, sendMessage, isLoading, error, conversationLanguage, conversationLevel } =
+  const { messages, isStreaming, sendMessage, isLoading, error, conversationLanguage, conversationLevel, conversationLessonSlug } =
     useChat(conversationId, activeLanguageCode, activeLevel);
   // Existing chats render in their own persisted language; a brand-new chat
   // uses the active global selection.
@@ -31,6 +32,9 @@ export default function ChatPage() {
     isNewChat ? activeLanguageCode : conversationLanguage,
   );
   const [input, setInput] = useState("");
+  const { data: practiceLesson } = useGetLesson(conversationLessonSlug ?? "", { language: effectiveLanguage.code }, {
+    query: { enabled: !!conversationLessonSlug && !!conversationLanguage },
+  });
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // The model can be swapped from the chat bar without leaving the
@@ -99,6 +103,7 @@ export default function ChatPage() {
         ref={scrollRef}
         className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 scroll-smooth"
       >
+        {practiceLesson && <p className="text-sm text-muted-foreground">Practicing: {practiceLesson.title}. Ask a question or say “Let’s practice this lesson.”</p>}
         {messages.length === 0 && !isLoading && (
           <div className="h-full flex flex-col items-center justify-center text-center max-w-md mx-auto space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
             <div className="h-16 w-16 bg-primary/10 text-primary rounded-full flex items-center justify-center mb-2">

@@ -52,6 +52,8 @@ export interface HealthStatus {
 }
 
 export interface OpenaiConversation {
+  /** @nullable */
+  lessonSlug?: string | null;
   id: number;
   title: string;
   /** Language code the learner is studying in this conversation */
@@ -70,6 +72,12 @@ export interface OpenaiMessage {
 }
 
 export interface OpenaiConversationInput {
+  /**
+     * Canonical lesson slug in the requested language
+     * @minLength 1
+     * @maxLength 200
+     */
+  lessonSlug?: string;
   /**
      * @minLength 1
      * @maxLength 200
@@ -128,6 +136,8 @@ export interface ModelList {
 }
 
 export interface OpenaiConversationWithMessages {
+  /** @nullable */
+  lessonSlug?: string | null;
   id: number;
   title: string;
   /** Language code the learner is studying in this conversation */

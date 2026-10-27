@@ -13,6 +13,7 @@ import { Book, CheckCircle2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useLanguage } from "@/hooks/use-language";
 import { cn } from "@/lib/utils";
+import { LearningContextNotice } from "@/components/learning-context-notice";
 
 // Level order (beginner -> intermediate -> advanced) used for cumulative
 // visibility and proximity sorting.
@@ -182,6 +183,9 @@ export default function LessonsPage() {
             );
           })
         )}
+      </div>
+      <div className="mt-6">
+        <LearningContextNotice />
       </div>
     </div>
   );

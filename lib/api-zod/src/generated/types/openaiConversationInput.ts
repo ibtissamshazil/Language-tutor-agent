@@ -8,6 +8,12 @@
 
 export interface OpenaiConversationInput {
   /**
+     * Canonical lesson slug in the requested language
+     * @minLength 1
+     * @maxLength 200
+     */
+  lessonSlug?: string;
+  /**
      * @minLength 1
      * @maxLength 200
      */

@@ -5,6 +5,7 @@ import { llm } from "../src/lib/llm";
 import { digest } from "../src/lib/auth";
 import { mountMethodFixtures } from "./signin-methods";
 import { mountIngressTests } from "./ingress";
+import { testLearningContext } from "./learning-context";
 
 let providerCalls = 0;
 const testSignInMethods = mountMethodFixtures(app);
@@ -39,6 +40,7 @@ try {
   assert.equal((await request("/auth/register", "POST", "", { email: "a@example.test", password }, { "X-Tutor-Request": "" })).status, 403);
   const a = await register(" A@example.test ");
   const b = await register("b@example.test");
+  await testLearningContext(request, a, b);
   assert.equal((await request("/auth/register", "POST", "", { email: "A@example.test", password })).status, 409);
   const concurrent = await Promise.all([1, 2].map(() => request("/auth/register", "POST", "", { email: "race@example.test", password })));
   assert.deepEqual(concurrent.map(r => r.status).sort(), [201, 409]);

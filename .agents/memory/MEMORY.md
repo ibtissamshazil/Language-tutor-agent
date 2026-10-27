@@ -11,4 +11,5 @@
 - [GitHub push without a token](github-push-no-token.md) — the GitHub connector gives Octokit but no raw credential; `git push` over HTTPS can't be authenticated from the sandbox.
 - [Sign-in methods](sign-in-methods.md) — email codes are the default; passwords belong under “Sign in using another method.”
 - [Private accounts](private-accounts.md) — historical shared records stay unclaimed; assigning them requires explicit owner approval.
+- [Learning context privacy](learning-context-privacy.md) — derive cross-chat context from live sources; exposure and completion must never be presented as mastery.
 - [Codegen with catalog dependencies](codegen-catalog-dependencies.md) — Orval may misdetect React Query's major when package versions use pnpm catalogs.

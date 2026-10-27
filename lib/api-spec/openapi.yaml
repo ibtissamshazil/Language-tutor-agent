@@ -577,6 +577,8 @@ components:
     OpenaiConversation:
       type: object
       properties:
+        lessonSlug:
+          type: ["string", "null"]
         id:
           type: integer
         title:
@@ -619,6 +621,11 @@ components:
     OpenaiConversationInput:
       type: object
       properties:
+        lessonSlug:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: Canonical lesson slug in the requested language
         title:
           type: string
           minLength: 1
@@ -706,6 +713,8 @@ components:
     OpenaiConversationWithMessages:
       type: object
       properties:
+        lessonSlug:
+          type: ["string", "null"]
         id:
           type: integer
         title:

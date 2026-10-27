@@ -7,6 +7,7 @@ export const conversations = pgTable("conversations", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").references(() => accounts.id),
   title: text("title").notNull(),
+  lessonSlug: text("lesson_slug"),
   // The language the learner is studying in this conversation. Persisted so an
   // old chat still renders and scores in its original language even after the
   // global selection changes. Defaults to "ur" to preserve pre-existing chats.

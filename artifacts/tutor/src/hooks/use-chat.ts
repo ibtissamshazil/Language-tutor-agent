@@ -315,5 +315,6 @@ export function useChat(
     // The conversation's persisted expertise level; undefined for a brand new
     // chat. Used so switching language carries the same level into the new chat.
     conversationLevel: conversationData?.level,
+    conversationLessonSlug: conversationData?.lessonSlug,
   };
 }

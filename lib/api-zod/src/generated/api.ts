@@ -122,6 +122,7 @@ export const HealthCheckResponse = zod.object({
  * @summary List all conversations
  */
 export const ListOpenaiConversationsResponseItem = zod.object({
+  "lessonSlug": zod.string().nullish(),
   "id": zod.int(),
   "title": zod.string(),
   "language": zod.string().describe('Language code the learner is studying in this conversation'),
@@ -134,17 +135,21 @@ export const ListOpenaiConversationsResponse = zod.array(ListOpenaiConversations
 /**
  * @summary Create a new conversation
  */
+export const createOpenaiConversationBodyLessonSlugMax = 200;
+
 export const createOpenaiConversationBodyTitleMax = 200;
 
 
 
 export const CreateOpenaiConversationBody = zod.object({
+  "lessonSlug": zod.string().min(1).max(createOpenaiConversationBodyLessonSlugMax).optional().describe('Canonical lesson slug in the requested language'),
   "title": zod.string().min(1).max(createOpenaiConversationBodyTitleMax),
   "language": zod.string().optional().describe('Language code to study in this conversation'),
   "level": zod.string().optional().describe('Expertise level to teach this conversation at')
 })
 
 export const CreateOpenaiConversationResponse = zod.object({
+  "lessonSlug": zod.string().nullish(),
   "id": zod.int(),
   "title": zod.string(),
   "language": zod.string().describe('Language code the learner is studying in this conversation'),
@@ -161,6 +166,7 @@ export const GetOpenaiConversationParams = zod.object({
 })
 
 export const GetOpenaiConversationResponse = zod.object({
+  "lessonSlug": zod.string().nullish(),
   "id": zod.int(),
   "title": zod.string(),
   "language": zod.string().describe('Language code the learner is studying in this conversation'),
@@ -194,6 +200,7 @@ export const UpdateOpenaiConversationBody = zod.object({
 })
 
 export const UpdateOpenaiConversationResponse = zod.object({
+  "lessonSlug": zod.string().nullish(),
   "id": zod.int(),
   "title": zod.string(),
   "language": zod.string().describe('Language code the learner is studying in this conversation'),

@@ -8,6 +8,8 @@
 import type { OpenaiMessage } from './openaiMessage';
 
 export interface OpenaiConversationWithMessages {
+  /** @nullable */
+  lessonSlug?: string | null;
   id: number;
   title: string;
   /** Language code the learner is studying in this conversation */

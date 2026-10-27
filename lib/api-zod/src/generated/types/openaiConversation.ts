@@ -7,6 +7,8 @@
  */
 
 export interface OpenaiConversation {
+  /** @nullable */
+  lessonSlug?: string | null;
   id: number;
   title: string;
   /** Language code the learner is studying in this conversation */

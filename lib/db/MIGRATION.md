@@ -1,5 +1,9 @@
 # Account migration
 
+The runner also applies `003-learning-context.sql`: a nullable canonical lesson
+association on conversations and lookup indexes. It neither copies chat content
+nor assigns legacy ownership. Learning summaries are rebuilt from live sources.
+
 Stop API writers and take a PostgreSQL backup with `pg_dump` using your normal
 secret-managed connection configuration. Verify that backup can be restored to
 an isolated database before proceeding. Do not commit backups or connection URLs.

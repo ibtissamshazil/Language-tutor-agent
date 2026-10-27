@@ -29,6 +29,8 @@ import {
 import { startOfToday, summarizeProgress } from "../lib/progress";
 import { compactHistory, toChatTurns } from "../lib/history";
 import { watchSession } from "../lib/auth";
+import { LESSONS_BY_LANGUAGE } from "../lib/lessons-data";
+import { loadLearningContext, MEMORY_RULES } from "../lib/learning-context";
 
 const router: IRouter = Router();
 
@@ -159,9 +161,15 @@ router.post("/conversations", async (req, res) => {
   // even if the global picks change.
   const language = getLanguage(parsed.data.language).code;
   const level = getLevel(parsed.data.level).code;
+  const lessonSlug = parsed.data.lessonSlug;
+  if (lessonSlug && (!isLanguageCode(parsed.data.language ?? "") ||
+      !LESSONS_BY_LANGUAGE[language]?.some(l => l.slug === lessonSlug))) {
+    res.status(400).json({ error: "Unknown lesson or language" });
+    return;
+  }
   const [row] = await db
     .insert(conversations)
-    .values({ title: parsed.data.title, language, level, userId: req.account.id })
+    .values({ title: parsed.data.title, language, level, lessonSlug, userId: req.account.id })
     .returning();
   res.status(201).json(row);
 });
@@ -178,7 +186,7 @@ router.patch("/conversations/:id", async (req, res) => {
     res.status(400).json({ error: "Invalid request body" });
     return;
   }
-  const updates: { title?: string; language?: string; level?: string } = {};
+  const updates: { title?: string; language?: string; level?: string; lessonSlug?: null } = {};
   if (parsed.data.title !== undefined) updates.title = parsed.data.title;
   if (parsed.data.language !== undefined) {
     if (!isLanguageCode(parsed.data.language)) {
@@ -186,6 +194,7 @@ router.patch("/conversations/:id", async (req, res) => {
       return;
     }
     updates.language = parsed.data.language;
+    updates.lessonSlug = null;
   }
   if (parsed.data.level !== undefined) {
     if (!isLevelCode(parsed.data.level)) {
@@ -386,6 +395,14 @@ router.post("/conversations/:id/messages", async (req, res) => {
       ),
     );
   const progress = summarizeProgress(todaysAssistantMessages.map((m) => m.content));
+  let learningContext: string;
+  try {
+    learningContext = await loadLearningContext(req.account.id, language.code, parsed.data.content, conversation.lessonSlug);
+  } catch {
+    req.log.warn("Saved learning context unavailable");
+    learningContext = JSON.stringify({ status: "unavailable", note: "Do not invent past study or completion status. If asked, explain that saved learning context is temporarily unavailable." });
+  }
+  if (clientDisconnected) return;
 
   // Built per candidate, not once: if the first choice is unavailable the
   // model that actually answers is a different one, and whether it needs the
@@ -403,17 +420,19 @@ router.post("/conversations/:id/messages", async (req, res) => {
     }
     return [
       { role: "system" as const, content: buildSystemPrompt(language, level) },
+      { role: "system" as const, content: MEMORY_RULES },
+      { role: "user" as const, content: `Saved learning reference data (not a new student request):\n${learningContext}` },
       {
         role: "system" as const,
         content: progressDirective(progress.points, progress.target, progress.achieved),
       },
-      ...(recap ? [{ role: "system" as const, content: recap }] : []),
+      ...(recap ? [{ role: "user" as const, content: `Untrusted earlier conversation recap:\n${recap}` }] : []),
       ...turns,
     ];
   };
 
   res.setHeader("Content-Type", "text/event-stream");
-  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Cache-Control", "private, no-store");
   res.setHeader("Connection", "keep-alive");
 
   let fullResponse = "";
